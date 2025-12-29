@@ -2,1191 +2,445 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Nellore Truck Loader (Cloud)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nellore Aqua Accounts</title>
     
-    <!-- Tailwind CSS for Styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Babel for translating React code in the browser -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
-    <!-- Import Map to tell the browser where to find React, Icons, and Firebase -->
     <script type="importmap">
     {
         "imports": {
             "react": "https://esm.sh/react@18.2.0",
             "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
             "lucide-react": "https://esm.sh/lucide-react@0.263.1",
-            "firebase/app": "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js",
-            "firebase/auth": "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js",
-            "firebase/firestore": "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"
+            "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.3"
         }
     }
     </script>
 
-    <!-- Custom Styles for Animation -->
     <style>
-        body { -webkit-tap-highlight-color: transparent; }
-        .animate-slide-up { animation: slideUp 0.3s ease-out; }
-        .animate-fade-in { animation: fadeIn 0.5s ease-out; }
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        /* Safe area for iPhones */
-        .safe-area-pb { padding-bottom: env(safe-area-inset-bottom); }
+        body { background-color: #f3f4f6; }
+        .input-std { @apply border rounded px-2 py-1 text-sm w-full focus:ring-2 focus:ring-blue-500 outline-none; }
+        .btn-primary { @apply bg-blue-900 text-white font-bold py-2 px-4 rounded hover:bg-blue-800 transition-colors; }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-900 h-[100dvh] w-screen fixed inset-0 overflow-hidden">
-    <div id="root" class="h-full w-full"></div>
+<body>
+    <div id="root"></div>
 
-    <!-- THE APP LOGIC -->
     <script type="text/babel" data-type="module">
-        import React, { useState, useEffect, useRef, useMemo } from 'react';
+        import React, { useState, useEffect, useMemo } from 'react';
         import { createRoot } from 'react-dom/client';
-        import { Truck, Box, Layers, FileText, ArrowRight, RotateCw, RotateCcw, Trash2, Save, Camera, Share2, Plus, X, RefreshCw, Package, User, Users, GripHorizontal, GripVertical, Layout, Grid, BoxSelect, ArrowDownCircle, ArrowUpCircle, Target, AlertCircle, Calendar, Database, Download, History, Info, ChevronDown, ChevronUp, BarChart3, Search, MinusCircle, PlusCircle, Cloud, CloudOff, FilePlus, FileSpreadsheet, HardDrive, AlertTriangle, Lock, Unlock, Settings } from 'lucide-react';
-        
-        // --- FIREBASE IMPORTS ---
-        import { initializeApp } from 'firebase/app';
-        import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
-        import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, getDocs } from 'firebase/firestore';
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyCjoLcfUN_Hop16PMRYJCppVzme40KXpuI",
-  authDomain: "var-operation.firebaseapp.com",
-  projectId: "var-operation",
-  storageBucket: "var-operation.firebasestorage.app",
-  messagingSenderId: "639200152502",
-  appId: "1:639200152502:web:a37eb169e424976b7b0f17",
-  measurementId: "G-MNLCWQWZMV"
-};
-        
-        const firebaseConfig = {
-            apiKey: "", // e.g. "AIzaSy..."
-            authDomain: "",
-            projectId: "",
-            storageBucket: "",
-            messagingSenderId: "",
-            appId: ""
-        };
+        import { Wallet, FileText, Users, Calculator, Save, ArrowRight, CheckCircle, Search, Plus, ArrowLeft, History } from 'lucide-react';
+        import { createClient } from '@supabase/supabase-js';
 
-        // ==========================================
-        
-        // Initialize only if config exists
-        let app, auth, db;
-        const isConfigured = firebaseConfig.apiKey && firebaseConfig.apiKey.length > 0;
+        // --- 1. CONFIGURATION ---
+        // Reuse your existing keys (Same DB as Operations App)
+        const supabaseUrl = 'https://wlntnttsliaygrqhfazj.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndsbnRudHRzbGlheWdycWhmYXpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4MzMzNjIsImV4cCI6MjA4MDQwOTM2Mn0.imoQLKoDxDVOmKbLOHVDsRxX5jRORMV5cYt2sFf9wiI';
+        const supabase = createClient(supabaseUrl, supabaseKey);
 
-        if (isConfigured) {
-            try {
-                app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                db = getFirestore(app);
-            } catch(e) {
-                console.error("Firebase Init Error", e);
-            }
-        }
-        
-        const APP_COLLECTION_ID = 'nellore_truck_app_v1'; // Unique ID for your app's data path
-
-        const TruckLoadPlanner = () => {
-            if (!isConfigured) {
-                return (
-                    <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-white">
-                        <div className="bg-orange-100 p-4 rounded-full mb-4"><Settings size={48} className="text-orange-500"/></div>
-                        <h1 className="text-2xl font-bold mb-2">App Not Configured</h1>
-                        <p className="text-gray-600 mb-6">To use the Cloud Sync features, you need to add your Firebase API keys to the code.</p>
-                        <div className="text-left bg-gray-100 p-4 rounded text-xs font-mono overflow-auto w-full max-w-md border border-gray-300">
-                            <p className="text-gray-500">// Open index.html and find this section:</p>
-                            <br/>
-                            <span className="text-purple-600">const</span> firebaseConfig = &#123;<br/>
-                            &nbsp;&nbsp;apiKey: "PASTE_HERE",<br/>
-                            &nbsp;&nbsp;...<br/>
-                            &#125;;
-                        </div>
-                    </div>
-                );
-            }
-
-            // --- CONFIGURATION ---
-            const [driverName, setDriverName] = useState('');
-            const [customerName, setCustomerName] = useState('');
-            const [varBoxCount, setVarBoxCount] = useState(''); 
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('dashboard');
+            const [pendingTrips, setPendingTrips] = useState([]);
+            const [selectedTrip, setSelectedTrip] = useState(null);
             
-            // Operation Mode, Targets & Date
-            const [operationMode, setOperationMode] = useState('Sales'); // 'Sales' or 'Purchase'
-            const [referenceId, setReferenceId] = useState(''); 
-            const [targetBoxCount, setTargetBoxCount] = useState(''); 
-            const [tripDate, setTripDate] = useState(new Date().toISOString().split('T')[0]); 
-            
-            // --- HYBRID LAYOUT SYSTEM ---
-            const createDefaultLanes = () => [];
-            const [lanes, setLanes] = useState(createDefaultLanes);
-            const [rows, setRows] = useState([]); 
-
-            // --- STATE ---
-            const [gridData, setGridData] = useState({});
-            const [stackOrientations, setStackOrientations] = useState({}); 
-            const [stackHeightOverrides, setStackHeightOverrides] = useState({}); 
-            
-            const [selectedCell, setSelectedCell] = useState(null); 
-            const [activeTab, setActiveTab] = useState('visualizer');
-            const [batchInput, setBatchInput] = useState('');
-            const [generatedImage, setGeneratedImage] = useState(null);
-            const [showAggregatedDetails, setShowAggregatedDetails] = useState(false);
-            const [showItemStock, setShowItemStock] = useState(true); 
-            const captureRef = useRef(null);
-
-            // RECORDS / HISTORY STATE
-            const [savedTrips, setSavedTrips] = useState([]);
-            const [expandedTripId, setExpandedTripId] = useState(null);
-            const [visibleRecords, setVisibleRecords] = useState(20); // PAGINATION STATE
-            
-            // DIRECT ENTRY STATE
-            const [showDirectEntry, setShowDirectEntry] = useState(false);
-            const [directData, setDirectData] = useState({
-                date: new Date().toISOString().split('T')[0],
-                mode: 'Purchase',
-                partyName: '',
-                refId: '', // Reference / Bill No
-                items: [] 
-            });
-            const [newItemName, setNewItemName] = useState('');
-            const [newItemCount, setNewItemCount] = useState('');
-
-            // AUTH & CLOUD STATE
-            const [user, setUser] = useState(null);
-            const [isOnline, setIsOnline] = useState(navigator.onLine);
-            
-            // ADMIN MODE
-            const [isAdmin, setIsAdmin] = useState(false);
-            const [adminPin, setAdminPin] = useState('');
-            const [showAdminLogin, setShowAdminLogin] = useState(false);
-
-            // --- INITIALIZATION & FIREBASE ---
+            // --- INITIAL DATA FETCH ---
             useEffect(() => {
-                const initAuth = async () => {
-                    try {
-                       await signInAnonymously(auth);
-                    } catch (error) {
-                        console.error("Auth Error:", error);
-                    }
-                };
-                if(auth) initAuth();
-                const unsubscribeAuth = auth ? onAuthStateChanged(auth, setUser) : () => {};
-
-                if (!window.html2canvas) {
-                    const script = document.createElement('script');
-                    script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
-                    script.async = true;
-                    document.body.appendChild(script);
-                }
-
-                window.addEventListener('online', () => setIsOnline(true));
-                window.addEventListener('offline', () => setIsOnline(false));
-
-                return () => {
-                    unsubscribeAuth();
-                    window.removeEventListener('online', () => setIsOnline(true));
-                    window.removeEventListener('offline', () => setIsOnline(false));
-                };
+                fetchPendingTrips();
             }, []);
 
-            // --- DATA FETCHING (FIRESTORE) ---
-            useEffect(() => {
-                if (!user || !db) return;
-                // Using a static path for your app instance
-                const tripsRef = collection(db, 'artifacts', APP_COLLECTION_ID, 'data', 'trips');
-                
-                const unsubscribe = onSnapshot(tripsRef, (snapshot) => {
-                    const trips = snapshot.docs.map(doc => ({
-                        id: doc.id,
-                        ...doc.data()
-                    }));
-                    trips.sort((a, b) => b.timestamp - a.timestamp);
-                    setSavedTrips(trips);
-                }, (error) => {
-                    console.error("Data fetch error:", error);
-                    if(error.code === 'permission-denied') {
-                        alert("Database permission denied. Please check Firestore Rules in Firebase Console.");
-                    }
-                });
-                return () => unsubscribe();
-            }, [user]);
+            const fetchPendingTrips = async () => {
+                // 1. Get all Trips from Operations App
+                const { data: trips, error } = await supabase
+                    .from('var_truck_trips')
+                    .select('*')
+                    .order('tripDate', { ascending: false });
 
+                if (error) console.error("Error fetching trips", error);
 
-            // --- LOGIC HELPERS ---
-            
-            const getKey = (type, major, minor, h) => {
-                const prefix = type === 'lane' ? 'L' : 'R';
-                return `${prefix}-${major}-${minor}-${h}`;
-            };
+                // 2. Get IDs of trips already billed (from Ledger)
+                const { data: billed } = await supabase.from('var_ledger').select('trip_id');
+                const billedIds = new Set(billed?.map(b => b.trip_id) || []);
 
-            const getStackConfigKey = (type, major, minor) => {
-                const prefix = type === 'lane' ? 'L' : 'R';
-                return `${prefix}-${major}-${minor}`;
-            }
-
-            const getBox = (type, major, minor, h) => {
-                const key = getKey(type, major, minor, h);
-                return gridData[key] || { id: key, label: '', filled: false };
-            };
-
-            const getStackOrientation = (type, major, minor) => {
-                return stackOrientations[getStackConfigKey(type, major, minor)] || 'Horizontal';
-            };
-
-            const getStackHeight = (type, major, minor) => {
-                const override = stackHeightOverrides[getStackConfigKey(type, major, minor)];
-                if (override !== undefined) return override;
-
-                if (type === 'lane') {
-                    const l = lanes.find(x => x.id === major);
-                    return l ? l.height : 5;
-                } else {
-                    const r = rows[major];
-                    return r ? r.height : 5;
+                // 3. Filter: Only show trips NOT yet billed
+                if (trips) {
+                    const pending = trips.filter(t => !billedIds.has(t.id));
+                    setPendingTrips(pending);
                 }
             };
 
-            const toggleStackOrientation = (type, major, minor) => {
-                const k = getStackConfigKey(type, major, minor);
-                const current = stackOrientations[k] || 'Horizontal';
-                setStackOrientations(prev => ({
-                    ...prev,
-                    [k]: current === 'Horizontal' ? 'Vertical' : 'Horizontal'
-                }));
-            };
-
-            const adjustStackHeight = (type, major, minor, delta) => {
-                const currentHeight = getStackHeight(type, major, minor);
-                const newHeight = Math.max(1, Math.min(15, currentHeight + delta));
-                const key = getStackConfigKey(type, major, minor);
-                setStackHeightOverrides(prev => ({ ...prev, [key]: newHeight }));
-            };
-
-            const updateBox = (type, major, minor, h, updates) => {
-                const key = getKey(type, major, minor, h);
-                setGridData(prev => ({
-                    ...prev,
-                    [key]: { ...getBox(type, major, minor, h), ...updates }
-                }));
-            };
-
-            const fillStack = (type, major, minor) => {
-                if (!batchInput) return;
-                
-                const heightLimit = getStackHeight(type, major, minor);
-                const newGrid = { ...gridData };
-                
-                for (let h = 0; h < heightLimit; h++) {
-                    const key = getKey(type, major, minor, h);
-                    newGrid[key] = { 
-                        id: key, 
-                        label: batchInput, 
-                        filled: true
-                    };
-                }
-                setGridData(newGrid);
-            };
-
-            const resetGrid = () => {
-                setGridData({});
-                setStackOrientations({});
-                setStackHeightOverrides({});
-                setGeneratedImage(null);
-                setBatchInput('');
-            };
-
-            const manualResetGrid = () => {
-                if (window.confirm("Clear all loaded boxes?")) {
-                    resetGrid();
-                    if (activeTab === 'share') setActiveTab('visualizer');
-                }
-            };
-
-            const resetLayoutConfig = () => {
-                if (window.confirm("Reset layout configuration (Clear all)?")) {
-                    setLanes([]);
-                    setRows([]);
-                    setDriverName('');
-                    setCustomerName('');
-                    setVarBoxCount('');
-                    setTargetBoxCount('');
-                    setReferenceId('');
-                    setTripDate(new Date().toISOString().split('T')[0]);
-                    setGridData({});
-                    setStackOrientations({});
-                    setStackHeightOverrides({});
-                }
-            };
-
-            const getStackStats = (type, major, minor) => {
-                let count = 0;
-                const heightLimit = getStackHeight(type, major, minor);
-
-                for (let h = 0; h < heightLimit; h++) {
-                    if (getBox(type, major, minor, h).filled) count++;
-                }
-                return { count, max: heightLimit };
-            };
-
-            // --- ADMIN LOGIC ---
-            const handleAdminLogin = () => {
-                if (adminPin === '1234') {
-                    setIsAdmin(true);
-                    setShowAdminLogin(false);
-                    setAdminPin('');
-                } else {
-                    alert("Incorrect PIN");
-                    setAdminPin('');
-                }
-            };
-
-            // --- CONFIG MANAGEMENT ---
-            const addLane = () => {
-                if(lanes.length >= 5) return alert("Max 5 lanes");
-                setLanes([...lanes, { id: Date.now(), name: `Lane ${lanes.length + 1}`, stacks: 4, height: 5 }]);
-            };
-            const removeLane = (id) => {
-                setLanes(lanes.filter(l => l.id !== id));
-            };
-            const updateLaneConfig = (id, field, value) => {
-                setLanes(lanes.map(l => l.id === id ? { ...l, [field]: parseInt(value) || 0 } : l));
-            };
-
-            const addRow = () => {
-                setRows([...rows, { id: Date.now(), cols: 3, height: 5 }]);
-            };
-            const removeRow = (idx) => {
-                const newRows = [...rows];
-                newRows.splice(idx, 1);
-                setRows(newRows);
-            };
-            const updateRowConfig = (idx, field, value) => {
-                const newRows = [...rows];
-                newRows[idx][field] = parseInt(value) || 0;
-                setRows(newRows);
-            };
-
-
-            // --- MANIFEST & AGGREGATION ---
-            const getManifestData = () => {
-                let totalBoxes = 0;
-                const summary = {};
-                const tally = (label) => {
-                    const cleanLabel = label ? label.trim() : 'Unlabeled';
-                    summary[cleanLabel] = (summary[cleanLabel] || 0) + 1;
-                };
-
-                lanes.forEach(lane => {
-                    for (let s = 0; s < lane.stacks; s++) {
-                        const hLimit = getStackHeight('lane', lane.id, s);
-                        for (let h = 0; h < hLimit; h++) {
-                            const box = getBox('lane', lane.id, s, h);
-                            if (box.filled) { totalBoxes++; tally(box.label); }
-                        }
-                    }
-                });
-
-                rows.forEach((row, rIdx) => {
-                    for (let c = 0; c < row.cols; c++) {
-                        const hLimit = getStackHeight('row', rIdx, c);
-                        for (let h = 0; h < hLimit; h++) {
-                            const box = getBox('row', rIdx, c, h);
-                            if (box.filled) { totalBoxes++; tally(box.label); }
-                        }
-                    }
-                });
-                
-                return { totalBoxes, summary };
-            };
-
-            // MEMOIZED TOTALS
-            const stockTotals = useMemo(() => {
-                let purchased = 0;
-                let sold = 0;
-                const itemStats = {}; 
-
-                savedTrips.forEach(t => {
-                    const boxes = Number(t.totalBoxes) || 0;
-                    
-                    if (t.operationMode === 'Purchase') purchased += boxes;
-                    else if (t.operationMode === 'Sales') sold += boxes;
-
-                    if (t.summary) {
-                        Object.keys(t.summary).forEach(item => {
-                            const cleanItem = item.trim();
-                            const qty = Number(t.summary[item]) || 0;
-                            
-                            if (!itemStats[cleanItem]) itemStats[cleanItem] = { in: 0, out: 0 };
-                            
-                            if (t.operationMode === 'Purchase') itemStats[cleanItem].in += qty;
-                            else if (t.operationMode === 'Sales') itemStats[cleanItem].out += qty;
-                        });
-                    }
-                });
-                return { purchased, sold, balance: purchased - sold, itemStats };
-            }, [savedTrips]);
-
-            const getAggregatedStats = () => {
-                const currentData = getManifestData();
-                if (!customerName) return { total: currentData.totalBoxes, items: currentData.summary };
-
-                const aggregatedItems = { ...currentData.summary };
-                let aggregatedTotal = currentData.totalBoxes;
-
-                const relevantTrips = savedTrips.filter(t => {
-                    const sameMode = t.operationMode === operationMode;
-                    const sameDate = t.tripDate === tripDate;
-                    const sameCustomer = t.customerName.toLowerCase().trim() === customerName.toLowerCase().trim();
-                    const sameRef = referenceId ? (t.referenceId.toLowerCase().trim() === referenceId.toLowerCase().trim()) : true;
-                    return sameMode && sameDate && sameCustomer && sameRef;
-                });
-
-                relevantTrips.forEach(t => {
-                    aggregatedTotal += t.totalBoxes;
-                    if (t.summary) {
-                        Object.keys(t.summary).forEach(item => {
-                            aggregatedItems[item] = (aggregatedItems[item] || 0) + t.summary[item];
-                        });
-                    }
-                });
-                return { total: aggregatedTotal, items: aggregatedItems, tripCount: relevantTrips.length };
-            };
-
-            const generateManifest = () => {
-                const { totalBoxes, summary } = getManifestData();
-                let manifest = `MANIFEST - ${operationMode.toUpperCase()}\nDATE: ${tripDate}\nDRIVER: ${driverName}\nREF: ${referenceId || '-'}\nTARGET: ${targetBoxCount || '-'}\nACTUAL: ${totalBoxes}\nVAR BOXES: ${varBoxCount}\n----------------\n`;
-                Object.keys(summary).forEach(label => {
-                    manifest += `${label}: ${summary[label]} boxes\n`;
-                });
-                return manifest;
-            };
-
-            // --- FIRESTORE ACTIONS ---
-            const saveTrip = async () => {
-                if (!user) { alert("Connecting to cloud..."); return; }
-                
-                const { totalBoxes, summary } = getManifestData();
-                if (totalBoxes === 0) return alert("Cannot save empty trip");
-
-                const newTrip = {
-                    timestamp: Date.now(),
-                    tripDate,
-                    operationMode,
-                    driverName,
-                    customerName,
-                    referenceId,
-                    targetBoxCount,
-                    varBoxCount,
-                    totalBoxes,
-                    summary,
-                    isDirectEntry: false // Marker for truck trips
-                };
-
-                try {
-                    await addDoc(collection(db, 'artifacts', APP_COLLECTION_ID, 'data', 'trips'), newTrip);
-                    if(window.confirm("Trip Saved to Cloud! Start a new load? (Clears current screen)")) {
-                        resetGrid();
-                    }
-                } catch (err) {
-                    console.error("Save failed", err);
-                    alert("Failed to save to cloud. Check connection.");
-                }
-            };
-
-            const clearAllCloudData = async () => {
-                if (!user) { alert("Must be online"); return; }
-                if (!window.confirm("DANGER: This will delete ALL history (Sales & Purchases) for EVERYONE using this app. This cannot be undone.")) return;
-                if (!window.confirm("Are you absolutely sure?")) return;
-
-                try {
-                    const tripsRef = collection(db, 'artifacts', APP_COLLECTION_ID, 'data', 'trips');
-                    const snapshot = await getDocs(tripsRef);
-                    const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
-                    await Promise.all(deletePromises);
-                    alert("All Cloud Data Cleared Successfully.");
-                } catch (err) {
-                    console.error("Clear failed", err);
-                    alert("Failed to clear data. Try again.");
-                }
-            };
-
-            // --- DIRECT ENTRY ACTIONS ---
-            const addItemToDirect = () => {
-                if (!newItemName || !newItemCount) return;
-                setDirectData({
-                    ...directData,
-                    items: [...directData.items, { name: newItemName, count: parseInt(newItemCount) }]
-                });
-                setNewItemName('');
-                setNewItemCount('');
-            };
-
-            const removeDirectItem = (idx) => {
-                const newItems = [...directData.items];
-                newItems.splice(idx, 1);
-                setDirectData({...directData, items: newItems});
-            };
-
-            const handleDirectSave = async (shouldDownload) => {
-                if (!user) { alert("Connecting to cloud..."); return; }
-                if (directData.items.length === 0) return alert("Add at least one item");
-                if (!directData.partyName) return alert("Enter Party Name");
-
-                let totalBoxes = 0;
-                const summary = {};
-                
-                directData.items.forEach(item => {
-                    const qty = Number(item.count) || 0;
-                    totalBoxes += qty;
-                    const cleanName = item.name.trim();
-                    summary[cleanName] = (summary[cleanName] || 0) + qty;
-                });
-
-                const newRecord = {
-                    timestamp: Date.now(),
-                    tripDate: directData.date,
-                    operationMode: directData.mode,
-                    customerName: directData.partyName,
-                    referenceId: directData.refId || 'DIRECT', 
-                    totalBoxes,
-                    summary,
-                    isDirectEntry: true,
-                    driverName: 'Direct Entry'
-                };
-
-                try {
-                    await addDoc(collection(db, 'artifacts', APP_COLLECTION_ID, 'data', 'trips'), newRecord);
-                    
-                    if (shouldDownload) {
-                         const headers = ["Date", "Mode", "Party", "Ref ID", "Item", "Quantity"];
-                         const rows = directData.items.map(item => [
-                            directData.date,
-                            directData.mode,
-                            directData.partyName,
-                            directData.refId || '-',
-                            item.name,
-                            item.count
-                        ].join(","));
-                        
-                        const csvContent = [headers.join(","), ...rows].join("\n");
-                        const blob = new Blob([csvContent], { type: 'text/csv' });
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `DirectEntry_${directData.partyName}_${directData.date}.csv`;
-                        a.click();
-                    } else {
-                         alert("Direct Record Saved!");
-                    }
-
-                    setShowDirectEntry(false);
-                    setDirectData({ date: new Date().toISOString().split('T')[0], mode: 'Purchase', partyName: '', refId: '', items: [] });
-                } catch (err) {
-                    alert("Failed to save");
-                }
-            };
-
-            const deleteTrip = async (id) => {
-                if (!user) return;
-                if (!isAdmin) {
-                     alert("Access Denied: Only Admin can delete records. Go to Settings to login.");
-                     return;
-                }
-                if(window.confirm("Are you sure you want to delete this record?")) {
-                    try {
-                        await deleteDoc(doc(db, 'artifacts', APP_COLLECTION_ID, 'data', 'trips', id));
-                    } catch (err) {
-                        alert("Delete failed");
-                    }
-                }
-            };
-
-            const downloadCSV = () => {
-                if(savedTrips.length === 0) return alert("No records to export");
-                const headers = ["Date", "Mode", "Type", "Driver", "Customer", "Ref ID", "Total Boxes", "Details"];
-                const csvContent = [
-                    headers.join(","),
-                    ...savedTrips.map(t => [
-                        t.tripDate, t.operationMode, t.isDirectEntry ? 'Direct' : 'Truck', t.driverName, t.customerName, t.referenceId, t.totalBoxes,
-                        JSON.stringify(t.summary).replace(/,/g, ';') 
-                    ].join(","))
-                ].join("\n");
-                const blob = new Blob([csvContent], { type: 'text/csv' });
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url; a.download = `var_truck_records_${new Date().toISOString().split('T')[0]}.csv`; a.click();
-            };
-
-            const handleCapture = async () => {
-                if (!window.html2canvas || !captureRef.current) { alert("Loading image tool..."); return; }
-                try {
-                    window.scrollTo(0,0);
-                    const canvas = await window.html2canvas(captureRef.current, { backgroundColor: '#ffffff', scale: 2, logging: false, useCORS: true });
-                    const imgData = canvas.toDataURL('image/png');
-                    setGeneratedImage(imgData);
-                    if (navigator.share) {
-                        canvas.toBlob(async (blob) => {
-                            const file = new File([blob], "load-plan.png", { type: "image/png" });
-                            try { await navigator.share({ files: [file], title: 'Load Plan' }); } catch (err) {}
-                        });
-                    }
-                } catch (error) { alert("Image generation failed"); }
-            };
-
-            // --- RENDERERS ---
-
-            const renderCell = (type, major, minor, label, isStatic) => {
-                const { count, max } = getStackStats(type, major, minor);
-                const isFull = count === max;
-                const isEmpty = count === 0;
-                const orientation = getStackOrientation(type, major, minor);
-
-                if (isStatic) {
-                    const stackContent = [];
-                    for (let h = max - 1; h >= 0; h--) {
-                        const box = getBox(type, major, minor, h);
-                        stackContent.push(
-                            <div key={h} className={`flex-1 flex items-center justify-center text-[9px] leading-none px-0.5 text-center overflow-hidden border-b border-white/20 last:border-0 ${box.filled ? 'bg-blue-600 text-white font-semibold' : 'bg-gray-100 text-gray-300'}`}>
-                                {box.filled ? (box.label || 'Item') : '-'}
-                            </div>
-                        );
-                    }
-                    const unitPixelHeight = orientation === 'Vertical' ? 30 : 24;
-                    const calculatedHeight = 16 + (max * unitPixelHeight);
-                    return (
-                        <div className={`relative w-full border border-gray-300 rounded overflow-hidden flex flex-col bg-gray-50 text-xs shadow-sm transition-all`} style={{ height: `${calculatedHeight}px` }}>
-                            <div className="bg-gray-200 text-gray-600 text-[8px] font-bold py-0.5 flex justify-between px-1 items-center">
-                                <span>{label}</span>
-                                <span className="font-extrabold text-blue-800">{orientation === 'Horizontal' ? 'H' : 'V'}</span>
-                            </div>
-                            <div className="flex-1 flex flex-col">{stackContent}</div>
-                        </div>
-                    );
-                } else {
-                    let bgColor = 'bg-gray-100';
-                    if (!isEmpty) bgColor = 'bg-blue-100';
-                    if (isFull) bgColor = 'bg-blue-500 text-white';
-                    const isSelected = selectedCell && selectedCell.type === type && 
-                                     ((type === 'lane' && selectedCell.laneId === major && selectedCell.stackIdx === minor) ||
-                                      (type === 'row' && selectedCell.rowIdx === major && selectedCell.colIdx === minor));
-                    if (isSelected) bgColor = 'ring-4 ring-yellow-400 ' + bgColor;
-                    const handleClick = () => {
-                        if (type === 'lane') setSelectedCell({ type: 'lane', laneId: major, stackIdx: minor });
-                        else setSelectedCell({ type: 'row', rowIdx: major, colIdx: minor });
-                    };
-                    return (
-                        <div onClick={handleClick} className={`relative h-16 w-full border-2 border-dashed border-gray-300 rounded-lg transition-all flex flex-col items-center justify-center cursor-pointer hover:shadow-md ${bgColor}`}>
-                            <span className="font-bold text-lg">{count}</span>
-                            <div className="absolute top-1 left-1 text-[10px] opacity-50 font-bold">{label}</div>
-                            <div className="absolute top-1 right-1">
-                                {orientation === 'Horizontal' ? <div className="text-[9px] font-black bg-white/50 px-1 rounded text-gray-600">H</div> : <div className="text-[9px] font-black bg-white/50 px-1 rounded text-gray-600">V</div>}
-                            </div>
-                            <div className="absolute bottom-1 flex gap-0.5 max-w-full overflow-hidden px-1">
-                                {[...Array(max)].map((_, i) => (<div key={i} className={`w-1 h-1 rounded-full ${i < count ? 'bg-green-400' : 'bg-gray-300'}`} />))}
-                            </div>
-                        </div>
-                    );
-                }
-            };
-
-            const renderVisualizer = (isStatic = false) => {
-                return (
-                    <div className="flex flex-col gap-6">
-                        {lanes.length > 0 && (
-                            <div>
-                                {!isStatic && <div className="flex items-center gap-2 text-xs font-bold text-blue-900 mb-2 border-b pb-1"><Layout size={14}/> MAIN COLUMNS (LANES)</div>}
-                                <div className="flex gap-2 w-full justify-between">
-                                    {lanes.map((lane) => (
-                                        <div key={lane.id} className="flex-1 flex flex-col gap-2 min-w-0">
-                                            {!isStatic && <div className="text-center text-[10px] font-bold text-gray-400 uppercase truncate">{lane.name}</div>}
-                                            {[...Array(lane.stacks)].map((_, stackIdx) => <div key={stackIdx}>{renderCell('lane', lane.id, stackIdx, `#${stackIdx+1}`, isStatic)}</div>)}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                        {rows.length > 0 && (
-                            <div>
-                                {!isStatic && <div className="flex items-center gap-2 text-xs font-bold text-orange-900 mb-2 border-b border-orange-200 pb-1 mt-4"><Grid size={14}/> IRREGULAR ROWS</div>}
-                                <div className="flex flex-col gap-4">
-                                    {rows.map((row, rIdx) => (
-                                        <div key={row.id} className="relative">
-                                            <div className="absolute -left-6 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">R{rIdx+1}</div>
-                                            <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${row.cols}, minmax(0, 1fr))` }}>
-                                                {[...Array(row.cols)].map((_, cIdx) => <div key={cIdx}>{renderCell('row', rIdx, cIdx, `C${cIdx+1}`, isStatic)}</div>)}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                        {rows.length === 0 && lanes.length === 0 && <div className="text-center p-8 text-gray-400 italic">No layout configured. Go to Config tab.</div>}
-                    </div>
-                );
-            };
-
-            const renderStackEditor = () => {
-                if (!selectedCell) return null;
-                let type, major, minor, title, subtitle;
-                type = selectedCell.type;
-                
-                if (type === 'lane') {
-                    major = selectedCell.laneId; minor = selectedCell.stackIdx;
-                    const lane = lanes.find(l => l.id === major); if (!lane) return null;
-                    title = lane.name; subtitle = `Stack #${minor + 1}`;
-                } else {
-                    major = selectedCell.rowIdx; minor = selectedCell.colIdx;
-                    const row = rows[major]; if (!row) return null;
-                    title = `Row ${major + 1}`; subtitle = `Column ${minor + 1}`;
-                }
-                
-                const heightLimit = getStackHeight(type, major, minor);
-                const orientation = getStackOrientation(type, major, minor);
-                const boxes = [];
-                
-                for (let h = heightLimit - 1; h >= 0; h--) {
-                    const box = getBox(type, major, minor, h);
-                    boxes.push(
-                        <div key={h} className={`p-3 rounded border-2 mb-2 flex justify-between items-center transition-all ${box.filled ? 'bg-blue-600 border-blue-700 text-white shadow-md' : 'bg-white border-gray-200 text-gray-400 border-dashed'}`}>
-                            <div className="flex items-center gap-3"><span className="font-mono text-xs opacity-50">H{h+1}</span>{box.filled ? <div className="font-bold">{box.label}</div> : <div className="italic text-sm">Empty Slot</div>}</div>
-                            <div className="flex gap-2">
-                                {box.filled ? (<button onClick={() => updateBox(type, major, minor, h, { filled: false, label: '' })} className="p-1 hover:text-red-300"><Trash2 size={16} /></button>) : (<button onClick={() => updateBox(type, major, minor, h, { filled: true, label: batchInput || 'Unlabeled' })} className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600">Load</button>)}
-                            </div>
-                        </div>
-                    );
-                }
-                return (
-                    <div className="bg-gray-50 p-4 rounded-lg border shadow-inner">
-                         <div className="flex flex-col gap-3 mb-4 border-b pb-4">
-                            <div className="flex justify-between items-center">
-                                <div><h3 className="font-bold text-gray-800">{title}</h3><div className="text-xs text-gray-500">{subtitle}</div></div>
-                                <button onClick={() => fillStack(type, major, minor)} className="text-xs bg-blue-600 text-white px-3 py-2 rounded shadow hover:bg-blue-700 disabled:opacity-50 font-bold" disabled={!batchInput}>Fill All</button>
-                            </div>
-                            
-                            {/* Controls Row */}
-                            <div className="flex gap-2 mt-2">
-                                {/* Orientation */}
-                                <div className="flex-1 flex items-center justify-between bg-white p-2 rounded border">
-                                    <span className="text-[10px] font-bold text-gray-500 uppercase">Orientation</span>
-                                    <button onClick={() => toggleStackOrientation(type, major, minor)} className={`flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold transition-colors ${orientation === 'Horizontal' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800'}`}>
-                                        {orientation === 'Horizontal' ? <GripHorizontal size={12}/> : <GripVertical size={12}/>} {orientation}
-                                    </button>
-                                </div>
-                                {/* Height Adjuster */}
-                                <div className="flex-1 flex items-center justify-between bg-white p-2 rounded border">
-                                    <span className="text-[10px] font-bold text-gray-500 uppercase">Capacity: {heightLimit}</span>
-                                    <div className="flex gap-1">
-                                        <button onClick={() => adjustStackHeight(type, major, minor, -1)} className="text-red-500 hover:bg-red-50 rounded p-0.5"><MinusCircle size={16}/></button>
-                                        <button onClick={() => adjustStackHeight(type, major, minor, 1)} className="text-green-500 hover:bg-green-50 rounded p-0.5"><PlusCircle size={16}/></button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {boxes}
-                        <div className="text-center text-xs text-gray-400 mt-2">Floor Level</div>
-                    </div>
-                );
-            };
-
-            const aggregatedStats = getAggregatedStats();
-
-            // --- UI ---
             return (
-                // CHANGED: Use h-full instead of h-screen to properly respect parent container height in mobile views
-                <div className="flex flex-col h-full w-full bg-gray-100 max-w-md mx-auto shadow-2xl overflow-hidden font-sans">
-                    {/* Header */}
-                    <div className={`text-white p-4 flex justify-between items-center shadow-lg z-10 ${operationMode === 'Sales' ? 'bg-blue-900' : 'bg-green-800'}`}>
-                        <div className="flex items-center gap-2">
-                            {operationMode === 'Sales' ? <ArrowUpCircle size={24} className="text-blue-300"/> : <ArrowDownCircle size={24} className="text-green-300"/>}
-                            <div><h1 className="font-bold text-lg leading-tight">VAR Load Planner</h1><div className="flex flex-col leading-none"><span className="text-xs text-white/80 font-bold uppercase tracking-widest">{operationMode}</span></div></div>
+                <div className="flex h-screen w-screen overflow-hidden">
+                    {/* Sidebar */}
+                    <div className="w-64 bg-slate-900 text-white flex flex-col hidden md:flex">
+                        <div className="p-6 font-black text-xl tracking-wider border-b border-slate-700">
+                            VAR ACCOUNTS
+                            <div className="text-xs text-slate-400 font-normal mt-1">Integrated Finance</div>
                         </div>
-                        <div className="text-right text-xs">
-                            <div className="uppercase font-bold text-white/60">Hybrid Mode</div>
-                            <div className="flex items-center justify-end gap-1 text-gray-300"><Cloud size={10}/> Cloud</div>
-                        </div>
+                        <nav className="flex-1 p-4 space-y-2">
+                            <NavBtn label="Dashboard" icon={<Wallet size={20}/>} active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
+                            <NavBtn label="Pending Bills" icon={<FileText size={20}/>} active={activeTab === 'billing'} onClick={() => setActiveTab('billing')} count={pendingTrips.length} />
+                            <NavBtn label="Parties / Ledger" icon={<Users size={20}/>} active={activeTab === 'parties'} onClick={() => setActiveTab('parties')} />
+                        </nav>
+                        <div className="p-4 text-xs text-slate-500 text-center">Nellore Aqua Tech</div>
                     </div>
 
-                    {activeTab === 'visualizer' && (
-                        <div className="bg-white p-3 shadow-sm z-10">
-                            <label className="text-xs font-bold text-gray-500 uppercase">Item Name / ఐటమ్ పేరు</label>
-                            <div className="flex gap-2 mt-1">
-                                <input type="text" placeholder="e.g. Farmer Ramu - 500g" className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" value={batchInput} onChange={(e) => setBatchInput(e.target.value)} />
-                                <button onClick={manualResetGrid} className="bg-red-50 text-red-600 p-2 rounded border border-red-100 hover:bg-red-100 transition-colors flex items-center gap-1"><RotateCcw size={18} /></button>
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="flex-1 overflow-y-auto p-4 relative bg-gray-50">
-                        {activeTab === 'visualizer' && (
-                            <>
-                                {selectedCell && (<div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setSelectedCell(null)}><div className="bg-white w-full max-w-md p-4 rounded-t-xl sm:rounded-xl animate-slide-up" onClick={e => e.stopPropagation()}><div className="flex justify-between items-center mb-2"><h3 className="font-bold text-gray-700">Editing Stack</h3><button onClick={() => setSelectedCell(null)} className="text-gray-500 p-2">Close</button></div>{renderStackEditor()}</div></div>)}
-                                <div className="mt-2">
-                                    {(targetBoxCount || referenceId || customerName) && (
-                                        <div className={`mb-6 rounded border transition-all ${aggregatedStats.total > parseInt(targetBoxCount || 99999) && targetBoxCount ? 'bg-red-50 border-red-200 text-red-800' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
-                                            <div className="p-3 flex justify-between items-center">
-                                                <div className="flex flex-col"><span className="text-[10px] uppercase font-bold opacity-60">Target / లక్ష్యం</span><span className="font-bold text-lg leading-none">{targetBoxCount || '-'}</span></div>
-                                                <div className="text-center"><div className="text-2xl font-black">{getManifestData().totalBoxes}</div><div className="text-[9px] uppercase font-bold">Current Load</div></div>
-                                                <div className="flex flex-col items-end"><span className="text-[10px] uppercase font-bold opacity-60">Aggr. Total</span><span className="font-bold text-lg leading-none">{aggregatedStats.total}</span></div>
-                                            </div>
-                                            <button onClick={() => setShowAggregatedDetails(!showAggregatedDetails)} className="w-full flex items-center justify-center gap-1 py-1 text-[10px] font-bold uppercase bg-white/50 hover:bg-white/80 border-t border-blue-100">{showAggregatedDetails ? <ChevronUp size={12}/> : <ChevronDown size={12}/>}{showAggregatedDetails ? 'Hide Item Details' : 'View Item Totals'}</button>
-                                            {showAggregatedDetails && (<div className="p-3 bg-white border-t border-blue-100 text-xs space-y-1 animate-fade-in"><div className="font-bold text-gray-400 mb-2 uppercase text-[10px]">Total Boxes by Item (Aggregated)</div>{Object.entries(aggregatedStats.items).length === 0 ? <div className="italic opacity-50">No items found</div> : Object.entries(aggregatedStats.items).map(([item, count]) => (<div key={item} className="flex justify-between"><span>{item}</span><span className="font-bold">{count}</span></div>))}<div className="mt-2 pt-2 border-t text-[10px] text-gray-400 italic text-center">Includes current load + {aggregatedStats.tripCount} saved trips today</div></div>)}
-                                        </div>
-                                    )}
-                                    {renderVisualizer(false)}
-                                    <div className="mt-8 text-center"><div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 rounded-full text-gray-600 text-sm font-bold"><ArrowRight className="rotate-90" size={16} /> Front of Vehicle (Cabin)</div></div>
-                                </div>
-                            </>
+                    {/* Mobile Sidebar Replacement (Bottom Nav) for small screens would go here, sticking to desktop-first for accounts mostly */}
+                    
+                    {/* Main Content */}
+                    <div className="flex-1 bg-gray-50 overflow-auto">
+                        {activeTab === 'dashboard' && <Dashboard pendingCount={pendingTrips.length} switchToBilling={() => setActiveTab('billing')} />}
+                        {activeTab === 'billing' && (
+                            !selectedTrip 
+                            ? <PendingList trips={pendingTrips} onSelect={setSelectedTrip} />
+                            : <InvoiceGenerator trip={selectedTrip} onBack={() => { setSelectedTrip(null); fetchPendingTrips(); }} />
                         )}
-
-                        {activeTab === 'share' && (
-                            <div className="flex flex-col h-full">
-                                <div className="mb-4 flex flex-col gap-2">
-                                    <button onClick={handleCapture} className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 shadow-lg hover:bg-blue-700">{generatedImage ? <Share2 size={20}/> : <Camera size={20} />}{generatedImage ? "Share / Save Image" : "Snap Picture"}</button>
-                                    {generatedImage && (<div className="text-center p-4 bg-white rounded border border-blue-200 animate-fade-in"><div className="text-sm text-gray-600 mb-2">Image generated!</div><img src={generatedImage} alt="Load Plan" className="w-full border rounded shadow-sm mb-4" /><button onClick={manualResetGrid} className="w-full bg-green-500 text-white py-2 rounded font-bold flex items-center justify-center gap-2 hover:bg-green-600"><RotateCcw size={16} /> Start New Load</button><button onClick={() => setGeneratedImage(null)} className="mt-3 text-xs text-blue-500 underline block w-full text-center">Take Another</button></div>)}
-                                </div>
-                                {!generatedImage && (
-                                    <div className="overflow-auto bg-white rounded-xl shadow-sm border p-1">
-                                        <div ref={captureRef} className="bg-white p-6 min-h-[600px]">
-                                            <div className={`border-b-2 pb-4 mb-6 flex justify-between items-start ${operationMode === 'Sales' ? 'border-blue-900' : 'border-green-800'}`}>
-                                                <div>
-                                                    <h1 className={`text-2xl font-black uppercase tracking-wider ${operationMode === 'Sales' ? 'text-blue-900' : 'text-green-900'}`}>VAR Load Planner</h1>
-                                                    <div className="mt-1 flex flex-col">
-                                                        {driverName && <span className="text-gray-600 text-sm font-bold flex items-center gap-1"><User size={14}/> {driverName}</span>}
-                                                        {customerName && <span className="text-gray-600 text-xs font-medium flex items-center gap-1"><Users size={14}/> {customerName}</span>}
-                                                        {referenceId && <span className="text-gray-400 text-xs font-medium flex items-center gap-1 mt-1">REF: {referenceId}</span>}
-                                                    </div>
-                                                </div>
-                                                <div className="flex flex-col items-end gap-2">
-                                                    <div className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold uppercase border ${operationMode === 'Sales' ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-green-100 text-green-800 border-green-200'}`}>{operationMode === 'Sales' ? <ArrowUpCircle size={12}/> : <ArrowDownCircle size={12}/>} {operationMode}</div>
-                                                    {varBoxCount && (<div className="flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-800 rounded text-[10px] font-bold border border-purple-200"><BoxSelect size={12}/> VAR Box: {varBoxCount}</div>)}
-                                                    <div className="text-right"><div className="text-xs text-gray-400">Date</div><div className="font-mono font-bold text-gray-800">{tripDate}</div></div>
-                                                </div>
-                                            </div>
-                                            <div className="flex gap-4 mb-6">
-                                                <div className="flex-1 bg-gray-50 p-4 rounded-lg border border-gray-200 text-sm"><h3 className="font-bold text-gray-700 border-b pb-2 mb-2 flex items-center gap-2"><FileText size={16}/> Summary</h3><div className="space-y-1">{Object.keys(getManifestData().summary).length === 0 ? <div className="text-gray-400 italic text-xs">No boxes loaded yet</div> : Object.keys(getManifestData().summary).map(key => (<div key={key} className="flex justify-between text-xs"><span className="text-gray-600">{key}</span><span className="font-bold">{getManifestData().summary[key]}</span></div>))}</div></div>
-                                                <div className={`w-1/3 text-white p-4 rounded-lg flex flex-col items-center justify-center text-center shadow-lg ${operationMode === 'Sales' ? 'bg-blue-900' : 'bg-green-800'}`}>{targetBoxCount ? (<><div className="text-3xl font-black">{getManifestData().totalBoxes}</div><div className="text-[9px] opacity-80 mb-1">of {targetBoxCount} Loaded</div><div className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${getManifestData().totalBoxes == targetBoxCount ? 'bg-green-400 text-green-900' : 'bg-white text-black'}`}>{getManifestData().totalBoxes - parseInt(targetBoxCount) > 0 ? '+' : ''}{getManifestData().totalBoxes - parseInt(targetBoxCount)}</div></>) : (<><Package size={24} className="mb-1 opacity-80"/><div className="text-[10px] uppercase font-bold tracking-widest opacity-70">Total Loaded</div><div className="text-4xl font-black">{getManifestData().totalBoxes}</div><div className="text-[9px] mt-1 opacity-70">Boxes</div></>)}</div>
-                                            </div>
-                                            <div className="pl-4 relative"><div className="absolute left-0 top-1/2 -translate-y-1/2 -rotate-90 text-xs font-bold text-gray-300 tracking-widest -ml-6">DRIVER SIDE</div>{renderVisualizer(true)}</div>
-                                            <div className="mt-8 text-center text-xs text-gray-300">Generated via Operations App</div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {activeTab === 'manifest' && (
-                            <div className="bg-white p-4 rounded shadow h-full overflow-auto flex flex-col">
-                                <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><FileText size={20} /> Load Manifest</h3>
-                                <pre className="bg-gray-100 p-4 rounded text-xs font-mono whitespace-pre-wrap border border-gray-200 flex-1">{generateManifest()}</pre>
-                                <div className="mt-4 grid grid-cols-2 gap-2">
-                                    <button onClick={() => { navigator.clipboard.writeText(generateManifest()); alert('Copied!'); }} className="bg-blue-900 text-white py-3 rounded font-bold flex items-center justify-center gap-2 hover:bg-blue-800"><Save size={18} /> Copy Text</button>
-                                    <button onClick={saveTrip} className="bg-green-600 text-white py-3 rounded font-bold flex items-center justify-center gap-2 hover:bg-green-700"><Database size={18} /> Save Trip</button>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* --- RECORDS TAB --- */}
-                        {activeTab === 'records' && (
-                            <div className="bg-white p-4 rounded shadow h-full overflow-auto flex flex-col relative">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h3 className="font-bold text-gray-800 flex items-center gap-2"><BarChart3 size={20} /> Stock & Records</h3>
-                                </div>
-                                
-                                <div className="bg-gray-900 text-white p-4 rounded-xl mb-4 shadow-lg">
-                                    <div className="flex justify-between items-center mb-4">
-                                        <div className="text-xs text-gray-400 uppercase font-bold tracking-wider">Inventory Overview</div>
-                                        <div className="bg-gray-800 px-2 py-1 rounded text-[10px] font-mono text-gray-300">Total History</div>
-                                    </div>
-                                    <div className="flex justify-between items-end">
-                                        <div className="text-center"><div className="text-2xl font-black text-green-400">{stockTotals.purchased}</div><div className="text-[10px] text-gray-400 uppercase font-bold mt-1">Inward</div></div>
-                                        <div className="pb-4 text-gray-600"><ArrowRight size={20}/></div>
-                                        <div className="text-center"><div className="text-2xl font-black text-blue-400">{stockTotals.sold}</div><div className="text-[10px] text-gray-400 uppercase font-bold mt-1">Outward</div></div>
-                                        <div className="h-10 w-px bg-gray-700 mx-2"></div>
-                                        <div className="text-right"><div className="text-3xl font-black text-white">{stockTotals.balance}</div><div className="text-[10px] text-yellow-500 uppercase font-bold mt-1">Current Stock</div></div>
-                                    </div>
-                                </div>
-
-                                {/* MOVED: DIRECT ENTRY BUTTON - PROMINENT */}
-                                <button 
-                                    onClick={() => setShowDirectEntry(true)} 
-                                    className="w-full mb-6 bg-gradient-to-r from-green-500 to-green-600 text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all"
-                                >
-                                    <FilePlus size={20} /> Add Direct Purchase / Sale (No Truck)
-                                </button>
-
-                                <div className="mb-6 border border-gray-200 rounded-lg bg-gray-50 overflow-hidden">
-                                    <button onClick={() => setShowItemStock(!showItemStock)} className="w-full flex justify-between items-center p-3 bg-white hover:bg-gray-50 transition-colors">
-                                        <div className="text-xs font-bold text-gray-600 uppercase flex items-center gap-2"><Box size={14} className="text-blue-500"/> Item-wise Balance Report</div>
-                                        {showItemStock ? <ChevronUp size={16} className="text-gray-400"/> : <ChevronDown size={16} className="text-gray-400"/>}
-                                    </button>
-                                    {showItemStock && (
-                                        <div className="p-2 animate-fade-in">
-                                            {Object.entries(stockTotals.itemStats).length === 0 ? (
-                                                <div className="text-center text-gray-400 text-xs italic py-2">No items found in history.</div>
-                                            ) : (
-                                                <table className="w-full text-xs border-collapse">
-                                                    <thead>
-                                                        <tr className="text-[10px] uppercase text-gray-400 border-b">
-                                                            <th className="text-left p-2">Item</th>
-                                                            <th className="text-right p-2 text-green-600">In</th>
-                                                            <th className="text-right p-2 text-blue-600">Out</th>
-                                                            <th className="text-right p-2 text-gray-800">Bal</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {Object.entries(stockTotals.itemStats).map(([item, stats]) => (
-                                                            <tr key={item} className="border-b border-gray-100 last:border-0 bg-white hover:bg-gray-50">
-                                                                <td className="p-2 font-bold text-gray-700">{item}</td>
-                                                                <td className="p-2 text-right text-green-600 font-mono">{stats.in}</td>
-                                                                <td className="p-2 text-right text-blue-600 font-mono">{stats.out}</td>
-                                                                <td className="p-2 text-right">
-                                                                    <span className={`px-2 py-0.5 rounded font-bold ${stats.in - stats.out < 0 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-800'}`}>
-                                                                        {stats.in - stats.out}
-                                                                    </span>
-                                                                </td>
-                                                            </tr>
-                                                        ))}
-                                                        {/* TOTALS ROW - ADDED */}
-                                                        <tr className="bg-gray-200 border-t-2 border-gray-300 font-black text-[11px]">
-                                                            <td className="p-2 text-gray-900 uppercase tracking-wider">TOTALS</td>
-                                                            <td className="p-2 text-right text-green-900">{Object.values(stockTotals.itemStats).reduce((sum, s) => sum + s.in, 0)}</td>
-                                                            <td className="p-2 text-right text-blue-900">{Object.values(stockTotals.itemStats).reduce((sum, s) => sum + s.out, 0)}</td>
-                                                            <td className="p-2 text-right text-black">{Object.values(stockTotals.itemStats).reduce((sum, s) => sum + (s.in - s.out), 0)}</td>
-                                                        </tr>
-                                                    </tbody>
-                                                </table>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* PAGINATED LIST - FILTER REMOVED */}
-                                <div className="flex-1 space-y-3 overflow-y-auto">
-                                    {savedTrips.length === 0 && <div className="text-center text-gray-400 text-xs italic py-10">No records found.</div>}
-                                    {savedTrips
-                                        .slice(0, visibleRecords)
-                                        .map(t => (
-                                        <div key={t.id} className={`border rounded-lg p-3 hover:bg-gray-50 text-xs ${t.operationMode === 'Sales' ? 'border-l-4 border-l-blue-500' : 'border-l-4 border-l-green-500'}`}>
-                                            <div className="flex justify-between items-start mb-2 cursor-pointer" onClick={() => setExpandedTripId(expandedTripId === t.id ? null : t.id)}>
-                                                <div className="flex flex-col">
-                                                    <span className="font-bold text-gray-700">{t.tripDate}</span>
-                                                    <span className="text-[10px] text-gray-400">{t.customerName || 'Unknown'}</span>
-                                                    {t.isDirectEntry && <span className="inline-block mt-1 px-1 py-0.5 bg-purple-100 text-purple-800 rounded text-[9px] font-bold w-fit">DIRECT</span>}
-                                                </div>
-                                                <div className="text-right">
-                                                    <div className={`font-bold text-lg leading-none ${t.operationMode === 'Sales' ? 'text-blue-600' : 'text-green-600'}`}>{t.operationMode === 'Sales' ? '-' : '+'}{t.totalBoxes}</div>
-                                                    <span className="font-mono bg-gray-200 px-1.5 rounded text-[9px] mt-1 inline-block">#{t.referenceId || '---'}</span>
-                                                </div>
-                                            </div>
-                                            
-                                            {/* --- EXPANDED TRIP DETAILS --- */}
-                                            {expandedTripId === t.id && (
-                                                <div className="mt-2 pt-2 border-t border-gray-100 animate-fade-in">
-                                                    <div className="text-[10px] font-bold text-gray-400 mb-1 uppercase">Trip Breakdown</div>
-                                                    <div className="grid grid-cols-2 gap-1">
-                                                        {t.summary ? Object.entries(t.summary).map(([item, count]) => (
-                                                            <div key={item} className="flex justify-between bg-gray-50 px-2 py-1 rounded">
-                                                                <span className="text-gray-600">{item}</span>
-                                                                <span className="font-bold">{count}</span>
-                                                            </div>
-                                                        )) : <div className="text-gray-400 italic">No details</div>}
-                                                    </div>
-                                                    <div className="flex justify-end mt-2">
-                                                        {/* Admin Check for Delete */}
-                                                        {isAdmin ? (
-                                                             <button onClick={(e) => { e.stopPropagation(); deleteTrip(t.id); }} className="text-red-500 text-[10px] flex items-center gap-1 hover:bg-red-50 px-2 py-1 rounded"><Trash2 size={12}/> Delete Record</button>
-                                                        ) : (
-                                                             <span className="text-[9px] text-gray-300 flex items-center gap-1"><Lock size={8}/> Admin Only</span>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                    {visibleRecords < savedTrips.length && (
-                                        <button onClick={() => setVisibleRecords(prev => prev + 20)} className="w-full py-2 text-xs font-bold text-gray-500 bg-gray-100 rounded hover:bg-gray-200">Show More Records</button>
-                                    )}
-                                </div>
-                                <button onClick={downloadCSV} className="mt-4 bg-gray-800 text-white py-3 rounded font-bold flex items-center justify-center gap-2 hover:bg-gray-900"><Download size={18} /> Export CSV (Google Sheets)</button>
-
-                                {/* --- DIRECT ENTRY MODAL --- */}
-                                {showDirectEntry && (
-                                    <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4">
-                                        <div className="bg-white w-full max-w-md p-4 rounded-xl animate-slide-up flex flex-col max-h-[90vh] shadow-2xl">
-                                            <div className="flex justify-between items-center mb-4 pb-2 border-b">
-                                                <h3 className="font-bold text-gray-800 flex items-center gap-2"><FilePlus size={20}/> Direct Entry</h3>
-                                                <button onClick={() => setShowDirectEntry(false)} className="text-gray-500 p-2 bg-gray-100 rounded-full hover:bg-gray-200"><X size={20}/></button>
-                                            </div>
-                                            
-                                            <div className="space-y-3 overflow-y-auto flex-1">
-                                                <div className="grid grid-cols-2 gap-2">
-                                                    <div>
-                                                        <label className="block text-[10px] font-bold text-gray-400 uppercase">Date</label>
-                                                        <input type="date" value={directData.date} onChange={e => setDirectData({...directData, date: e.target.value})} className="w-full border p-2 rounded text-sm font-bold"/>
-                                                    </div>
-                                                    <div>
-                                                        <label className="block text-[10px] font-bold text-gray-400 uppercase">Mode</label>
-                                                        <select value={directData.mode} onChange={e => setDirectData({...directData, mode: e.target.value})} className="w-full border p-2 rounded text-sm font-bold bg-white">
-                                                            <option value="Purchase">Purchase</option>
-                                                            <option value="Sales">Sales</option>
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                                <div className="grid grid-cols-2 gap-2">
-                                                    <div>
-                                                        <label className="block text-[10px] font-bold text-gray-400 uppercase">Ref / Bill No</label>
-                                                        <input type="text" value={directData.refId} onChange={e => setDirectData({...directData, refId: e.target.value})} className="w-full border p-2 rounded text-sm" placeholder="#123"/>
-                                                    </div>
-                                                    <div>
-                                                        <label className="block text-[10px] font-bold text-gray-400 uppercase">Party Name</label>
-                                                        <input type="text" value={directData.partyName} onChange={e => setDirectData({...directData, partyName: e.target.value})} className="w-full border p-2 rounded text-sm" placeholder="Supplier/Customer Name"/>
-                                                    </div>
-                                                </div>
-
-                                                {/* Items List */}
-                                                <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                                                    <label className="block text-[10px] font-bold text-gray-400 mb-2 uppercase">Items List</label>
-                                                    {directData.items.length === 0 && <div className="text-center text-xs text-gray-400 italic mb-2">No items added yet</div>}
-                                                    <div className="space-y-2 mb-3">
-                                                        {directData.items.map((item, idx) => (
-                                                            <div key={idx} className="flex justify-between items-center bg-white p-2 rounded border shadow-sm text-xs">
-                                                                <span className="font-bold text-gray-700">{item.name}</span>
-                                                                <div className="flex items-center gap-3">
-                                                                    <span className="font-mono font-bold bg-gray-100 px-2 py-0.5 rounded">{item.count}</span>
-                                                                    <button onClick={() => removeDirectItem(idx)} className="text-red-400 hover:text-red-600"><X size={14}/></button>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                    <div className="flex gap-2">
-                                                        <input type="text" value={newItemName} onChange={e => setNewItemName(e.target.value)} className="flex-[2] border p-2 rounded text-xs" placeholder="Item Name (e.g. Rohu)"/>
-                                                        <input type="number" value={newItemCount} onChange={e => setNewItemCount(e.target.value)} className="flex-1 border p-2 rounded text-xs" placeholder="Qty"/>
-                                                        <button onClick={addItemToDirect} className="bg-green-500 text-white px-3 rounded hover:bg-green-600 font-bold"><Plus size={16}/></button>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="mt-4 grid grid-cols-2 gap-3">
-                                                <button onClick={() => setShowDirectEntry(false)} className="w-full bg-gray-200 text-gray-700 py-3 rounded-lg font-bold text-sm">Cancel</button>
-                                                <button onClick={() => handleDirectSave(false)} className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold text-sm shadow-lg hover:bg-blue-700">Save Record</button>
-                                            </div>
-                                            <button onClick={() => handleDirectSave(true)} className="mt-3 w-full bg-green-600 text-white py-3 rounded-lg font-bold text-sm shadow-lg hover:bg-green-700 flex items-center justify-center gap-2"><FileSpreadsheet size={18}/> Save & Download Excel</button>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                        
-                        {activeTab === 'settings' && (
-                            <div className="bg-white p-4 rounded shadow h-full overflow-y-auto">
-                                <h3 className="font-bold mb-4 flex items-center gap-2 text-lg text-blue-900"><Truck size={20}/> Vehicle Setup</h3>
-                                <div className="space-y-6">
-                                    
-                                    {/* --- ADMIN LOGIN & CONTROLS --- */}
-                                    <div className="p-3 bg-gray-100 border border-gray-200 rounded space-y-2">
-                                        <div className="flex justify-between items-center">
-                                            <h4 className="text-xs font-bold text-gray-600 uppercase flex items-center gap-1">
-                                                {isAdmin ? <Unlock size={14} className="text-green-600"/> : <Lock size={14}/>} 
-                                                Admin Controls
-                                            </h4>
-                                            {isAdmin && <span className="text-[10px] text-green-600 font-bold bg-green-100 px-2 py-0.5 rounded">Logged In</span>}
-                                        </div>
-                                        
-                                        {!isAdmin ? (
-                                            <div className="flex gap-2">
-                                                <input 
-                                                    type="password" 
-                                                    placeholder="Enter PIN (1234)" 
-                                                    className="flex-1 border p-2 rounded text-sm"
-                                                    value={adminPin}
-                                                    onChange={e => setAdminPin(e.target.value)}
-                                                />
-                                                <button onClick={handleAdminLogin} className="bg-gray-800 text-white px-4 py-2 rounded text-xs font-bold">Unlock</button>
-                                            </div>
-                                        ) : (
-                                            <div className="space-y-3 animate-fade-in">
-                                                <div className="p-2 bg-red-50 border border-red-200 rounded">
-                                                    <p className="text-[10px] text-red-600 mb-2">Dangerous Actions (Permanent)</p>
-                                                    <div className="grid grid-cols-2 gap-2">
-                                                        <button onClick={resetLayoutConfig} className="bg-red-100 text-red-600 py-2 rounded text-xs font-bold hover:bg-red-200">Reset Config</button>
-                                                        <button onClick={clearAllCloudData} className="bg-red-600 text-white py-2 rounded text-xs font-bold hover:bg-red-700">Wipe All Data</button>
-                                                    </div>
-                                                </div>
-                                                <button onClick={() => setIsAdmin(false)} className="w-full text-xs text-gray-500 hover:text-gray-800 underline">Lock Admin Controls</button>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="p-3 bg-gray-50 border rounded space-y-3">
-                                        <label className="block text-xs font-bold text-gray-500 uppercase">Trip Details</label>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <button onClick={() => setOperationMode('Sales')} className={`py-2 text-xs font-bold rounded border ${operationMode === 'Sales' ? 'bg-blue-500 text-white border-blue-600' : 'bg-white text-gray-500'}`}>Sales / Dispatch</button>
-                                            <button onClick={() => setOperationMode('Purchase')} className={`py-2 text-xs font-bold rounded border ${operationMode === 'Purchase' ? 'bg-green-600 text-white border-green-700' : 'bg-white text-gray-500'}`}>Purchase / Inward</button>
-                                        </div>
-                                        <div>
-                                            <label className="block text-[10px] font-bold text-gray-400 flex items-center gap-1"><Calendar size={10}/> Trip Date</label>
-                                            <input type="date" value={tripDate} onChange={e => setTripDate(e.target.value)} className="w-full border p-2 rounded text-sm font-bold text-gray-700 bg-white" />
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <div><label className="block text-[10px] font-bold text-gray-400">Ref / Order ID</label><input type="text" value={referenceId} onChange={e => setReferenceId(e.target.value)} className="w-full border p-1 rounded text-sm" placeholder="#123" /></div>
-                                            <div><label className="block text-[10px] font-bold text-gray-400">Target Count / లక్ష్యం</label><input type="number" value={targetBoxCount} onChange={e => setTargetBoxCount(e.target.value)} className="w-full border p-1 rounded text-sm" placeholder="e.g. 150" /></div>
-                                        </div>
-                                    </div>
-                                    <div><label className="block text-xs font-bold text-gray-500 mb-1">Driver Name / డ్రైవర్ పేరు</label><input type="text" value={driverName} onChange={e => setDriverName(e.target.value)} className="w-full border p-2 rounded bg-gray-50"/></div>
-                                    <div><label className="block text-xs font-bold text-gray-500 mb-1">Customer / Supplier Name</label><input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} className="w-full border p-2 rounded bg-gray-50"/></div>
-                                    <div><label className="block text-xs font-bold text-purple-800 mb-1">VAR Box Count / VAR బాక్సులు</label><input type="number" value={varBoxCount} onChange={e => setVarBoxCount(e.target.value)} className="w-full border border-purple-200 p-2 rounded bg-purple-50 focus:ring-2 focus:ring-purple-300 outline-none font-bold text-purple-900" placeholder="0"/></div>
-                                    <div>
-                                        <div className="flex justify-between items-center mb-2">
-                                            <label className="block text-xs font-bold text-blue-900 flex items-center gap-1"><Layout size={12}/> Lane Configuration (Columns)</label>
-                                            <button onClick={addLane} className="flex items-center gap-1 text-xs bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600"><Plus size={14}/> Add Lane</button>
-                                        </div>
-                                        <div className="space-y-2 mb-4">
-                                            {lanes.map((lane, idx) => (
-                                                <div key={lane.id} className="flex items-center gap-2 bg-blue-50 p-2 rounded border border-blue-100 animate-fade-in">
-                                                    <div className="w-8 h-8 flex items-center justify-center bg-blue-200 rounded text-xs font-bold text-blue-800">L{idx+1}</div>
-                                                    <div className="flex-1"><label className="block text-[10px] text-gray-400 uppercase font-bold">Stacks</label><input type="number" value={lane.stacks} onChange={(e) => updateLaneConfig(lane.id, 'stacks', e.target.value)} className="w-full border p-1 rounded text-sm text-center" min="1" max="10" /></div>
-                                                    <div className="flex-1"><label className="block text-[10px] text-gray-400 uppercase font-bold">Height</label><input type="number" value={lane.height} onChange={(e) => updateLaneConfig(lane.id, 'height', e.target.value)} className="w-full border p-1 rounded text-sm text-center" min="1" max="10" /></div>
-                                                    <button onClick={() => removeLane(lane.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded"><X size={16} /></button>
-                                                </div>
-                                            ))}
-                                            {lanes.length === 0 && <div className="text-xs text-gray-400 text-center italic p-2">No lanes configured</div>}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div className="flex justify-between items-center mb-2">
-                                            <label className="block text-xs font-bold text-orange-900 flex items-center gap-1"><Grid size={12}/> Row Configuration (Irregular)</label>
-                                            <button onClick={addRow} className="flex items-center gap-1 text-xs bg-orange-500 text-white px-2 py-1 rounded hover:bg-orange-600"><Plus size={14}/> Add Row</button>
-                                        </div>
-                                        <div className="space-y-2">
-                                            {rows.map((row, idx) => (
-                                                <div key={row.id} className="flex items-center gap-2 bg-orange-50 p-2 rounded border border-orange-100 animate-fade-in">
-                                                    <div className="w-8 h-8 flex items-center justify-center bg-orange-200 rounded text-xs font-bold text-orange-800">R{idx+1}</div>
-                                                    <div className="flex-1"><label className="block text-[10px] text-gray-400 uppercase font-bold">Cols</label><input type="number" value={row.cols} onChange={(e) => updateRowConfig(idx, 'cols', e.target.value)} className="w-full border p-1 rounded text-sm text-center" min="1" max="5" /></div>
-                                                    <div className="flex-1"><label className="block text-[10px] text-gray-400 uppercase font-bold">Height</label><input type="number" value={row.height} onChange={(e) => updateRowConfig(idx, 'height', e.target.value)} className="w-full border p-1 rounded text-sm text-center" min="1" max="10" /></div>
-                                                    <button onClick={() => removeRow(idx)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded"><X size={16} /></button>
-                                                </div>
-                                            ))}
-                                            {rows.length === 0 && <div className="text-xs text-gray-400 text-center italic p-2">No rows configured</div>}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                    <div className="bg-white border-t p-2 flex justify-around items-center text-xs font-bold text-gray-500 safe-area-pb">
-                        <button onClick={() => setActiveTab('visualizer')} className={`flex flex-col items-center p-2 rounded ${activeTab === 'visualizer' ? 'text-blue-600 bg-blue-50' : ''}`}><Layers size={20} /><span className="mt-1">Layout</span></button>
-                        <button onClick={() => setActiveTab('share')} className={`flex flex-col items-center p-2 rounded ${activeTab === 'share' ? 'text-blue-600 bg-blue-50' : ''}`}><Camera size={20} /><span className="mt-1">Photo</span></button>
-                        <button onClick={() => setActiveTab('manifest')} className={`flex flex-col items-center p-2 rounded ${activeTab === 'manifest' ? 'text-blue-600 bg-blue-50' : ''}`}><FileText size={20} /><span className="mt-1">Manifest</span></button>
-                        <button onClick={() => setActiveTab('records')} className={`flex flex-col items-center p-2 rounded ${activeTab === 'records' ? 'text-blue-600 bg-blue-50' : ''}`}><BarChart3 size={20} /><span className="mt-1">Records</span></button>
-                        <button onClick={() => setActiveTab('settings')} className={`flex flex-col items-center p-2 rounded ${activeTab === 'settings' ? 'text-blue-600 bg-blue-50' : ''}`}><Box size={20} /><span className="mt-1">Config</span></button>
+                        {activeTab === 'parties' && <PartyManager />}
                     </div>
                 </div>
             );
         };
 
+        // --- COMPONENTS ---
+
+        const NavBtn = ({ label, icon, active, onClick, count }) => (
+            <button onClick={onClick} className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all ${active ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-300 hover:bg-slate-800'}`}>
+                <div className="flex items-center gap-3">{icon} <span className="font-bold text-sm">{label}</span></div>
+                {count > 0 && <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{count}</span>}
+            </button>
+        );
+
+        const Dashboard = ({ pendingCount, switchToBilling }) => (
+            <div className="p-8 max-w-5xl mx-auto">
+                <h1 className="text-2xl font-black text-slate-800 mb-6">Financial Overview</h1>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        <div className="text-sm text-gray-400 font-bold uppercase mb-2">Pending Invoices</div>
+                        <div className="text-4xl font-black text-orange-500">{pendingCount}</div>
+                        <div className="text-xs text-gray-500 mt-2">Trips completed but not billed</div>
+                        <button onClick={switchToBilling} className="mt-4 text-sm font-bold text-blue-600 hover:underline">Process Now &rarr;</button>
+                    </div>
+                    <div className="bg-gradient-to-br from-blue-900 to-blue-800 text-white p-6 rounded-xl shadow-lg">
+                        <div className="text-sm text-blue-200 font-bold uppercase mb-2">Total Receivables</div>
+                        <div className="text-4xl font-black">₹ --</div>
+                        <div className="text-xs text-blue-300 mt-2">Outstanding from Buyers</div>
+                    </div>
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        <div className="text-sm text-gray-400 font-bold uppercase mb-2">Total Payables</div>
+                        <div className="text-4xl font-black text-slate-800">₹ --</div>
+                        <div className="text-xs text-gray-500 mt-2">Due to Suppliers</div>
+                    </div>
+                </div>
+            </div>
+        );
+
+        const PendingList = ({ trips, onSelect }) => (
+            <div className="p-8 max-w-5xl mx-auto">
+                <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2"><FileText /> Pending Trips for Billing</h2>
+                {trips.length === 0 ? (
+                    <div className="text-center py-20 bg-white rounded-xl border border-dashed text-gray-400">All caught up! No pending trips.</div>
+                ) : (
+                    <div className="grid gap-4">
+                        {trips.map(trip => (
+                            <div key={trip.id} onClick={() => onSelect(trip)} className="bg-white p-4 rounded-xl shadow-sm border hover:shadow-md cursor-pointer transition-all flex justify-between items-center group">
+                                <div>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${trip.operationMode === 'Sales' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>{trip.operationMode}</span>
+                                        <span className="text-gray-400 text-xs font-mono">#{trip.referenceId || '---'}</span>
+                                        <span className="text-gray-400 text-xs">| {trip.tripDate}</span>
+                                    </div>
+                                    <h3 className="font-bold text-lg text-slate-800">{trip.customerName || 'Unknown Party'}</h3>
+                                    <div className="text-xs text-gray-500">{trip.totalBoxes} Boxes Loaded</div>
+                                </div>
+                                <div className="text-right">
+                                    <button className="bg-gray-100 text-gray-600 px-4 py-2 rounded-lg font-bold text-sm group-hover:bg-blue-600 group-hover:text-white transition-colors">Create Bill &rarr;</button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        );
+
+        // --- CORE LOGIC: THE INVOICE GENERATOR ---
+        const InvoiceGenerator = ({ trip, onBack }) => {
+            // 1. Prepare Initial Rows from Trip Data
+            const [rows, setRows] = useState([]);
+            const [partyList, setPartyList] = useState([]);
+            const [selectedPartyId, setSelectedPartyId] = useState('');
+            const [loading, setLoading] = useState(false);
+            
+            // Financial State
+            const [discount, setDiscount] = useState(0);
+            const [amountReceived, setAmountReceived] = useState(0);
+
+            // Fetch Parties & Init Rows
+            useEffect(() => {
+                const init = async () => {
+                    // Fetch Parties
+                    const { data } = await supabase.from('var_parties').select('*');
+                    setPartyList(data || []);
+                    
+                    // Auto-select party if name matches
+                    if (data && trip.customerName) {
+                        const match = data.find(p => p.name.toLowerCase() === trip.customerName.toLowerCase());
+                        if (match) setSelectedPartyId(match.id);
+                    }
+
+                    // Parse Trip Items
+                    let initialItems = [];
+                    if (trip.detailedItems) {
+                        initialItems = trip.detailedItems.map(i => ({
+                            name: i.name,
+                            boxes: Number(i.boxes) || 0,
+                            loose: Number(i.looseKg) || 0,
+                            stdWeight: 35, // Default Standard
+                            price: 0
+                        }));
+                    } else if (trip.summary) {
+                        // Legacy support for summary-only trips
+                        initialItems = Object.entries(trip.summary)
+                            .filter(([k]) => !k.startsWith('__'))
+                            .map(([k, v]) => ({
+                                name: k,
+                                boxes: Number(v),
+                                loose: 0,
+                                stdWeight: 35,
+                                price: 0
+                            }));
+                    }
+                    setRows(initialItems);
+                };
+                init();
+            }, [trip]);
+
+            // Calculation Logic
+            const calculatedRows = useMemo(() => {
+                return rows.map(row => {
+                    const weight = (row.boxes * parseFloat(row.stdWeight || 0)) + row.loose;
+                    const total = weight * parseFloat(row.price || 0);
+                    return { ...row, weight, total };
+                });
+            }, [rows]);
+
+            const subTotal = calculatedRows.reduce((sum, r) => sum + r.total, 0);
+            const grandTotal = subTotal - parseFloat(discount || 0);
+
+            // Handlers
+            const updateRow = (index, field, value) => {
+                const newRows = [...rows];
+                newRows[index][field] = value;
+                setRows(newRows);
+            };
+
+            const handleSave = async () => {
+                if (!selectedPartyId) return alert("Please select or create a Party first.");
+                if (grandTotal <= 0) return alert("Invoice total cannot be zero.");
+
+                setLoading(true);
+                try {
+                    // 1. Create Ledger Entry
+                    const { data: ledgerEntry, error: lErr } = await supabase
+                        .from('var_ledger')
+                        .insert([{
+                            party_id: selectedPartyId,
+                            trip_id: trip.id,
+                            transaction_date: new Date(),
+                            description: `Bill for Trip #${trip.referenceId || '---'} (${trip.operationMode})`,
+                            bill_amount: grandTotal,
+                            paid_amount: amountReceived,
+                            discount: discount,
+                            balance_after: 0 // Trigger will handle or we calc later
+                        }])
+                        .select()
+                        .single();
+
+                    if (lErr) throw lErr;
+
+                    // 2. Save Line Items (For future editing)
+                    const lineItems = calculatedRows.map(r => ({
+                        ledger_id: ledgerEntry.id,
+                        item_name: r.name,
+                        boxes: r.boxes,
+                        loose_kg: r.loose,
+                        std_weight: r.stdWeight,
+                        price_per_kg: r.price,
+                        total_weight: r.weight,
+                        line_total: r.total
+                    }));
+
+                    const { error: iErr } = await supabase.from('var_invoice_items').insert(lineItems);
+                    if (iErr) throw iErr;
+
+                    // 3. Update Party Balance
+                    // (Ideally done via DB Trigger, but doing manual logic here for simplicity)
+                    // Fetch current balance
+                    const { data: party } = await supabase.from('var_parties').select('opening_balance').eq('id', selectedPartyId).single();
+                    let currentBal = parseFloat(party.opening_balance || 0);
+                    
+                    // Logic: If Sale, they owe us (+). If Purchase, we owe them (-).
+                    const netChange = grandTotal - amountReceived;
+                    const finalBal = trip.operationMode === 'Sales' 
+                        ? currentBal + netChange 
+                        : currentBal - netChange;
+
+                    await supabase.from('var_parties').update({ opening_balance: finalBal }).eq('id', selectedPartyId);
+
+                    alert("Invoice Saved Successfully!");
+                    onBack(); // Return to list
+
+                } catch (e) {
+                    console.error(e);
+                    alert("Error saving: " + e.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const addNewParty = async () => {
+                const name = prompt("Enter new party Name:");
+                if (!name) return;
+                const { data, error } = await supabase.from('var_parties').insert([{ name, type: 'Customer' }]).select().single();
+                if (data) {
+                    setPartyList([...partyList, data]);
+                    setSelectedPartyId(data.id);
+                }
+            };
+
+            return (
+                <div className="p-4 max-w-6xl mx-auto bg-white min-h-screen shadow-2xl flex flex-col">
+                    {/* Header */}
+                    <div className="flex items-center gap-4 mb-6 border-b pb-4">
+                        <button onClick={onBack} className="p-2 hover:bg-gray-100 rounded-full"><ArrowLeft /></button>
+                        <div>
+                            <h2 className="text-xl font-black text-slate-800">New Invoice</h2>
+                            <div className="text-xs text-gray-500">Ref: {trip.referenceId} | Date: {trip.tripDate}</div>
+                        </div>
+                        <div className="ml-auto flex items-center gap-2">
+                            <select 
+                                className="border p-2 rounded font-bold text-sm min-w-[200px]"
+                                value={selectedPartyId}
+                                onChange={e => setSelectedPartyId(e.target.value)}
+                            >
+                                <option value="">-- Select Party --</option>
+                                {partyList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                            </select>
+                            <button onClick={addNewParty} className="bg-gray-200 p-2 rounded hover:bg-gray-300"><Plus size={16}/></button>
+                        </div>
+                    </div>
+
+                    {/* Table */}
+                    <div className="flex-1 overflow-auto">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-gray-100 text-gray-600 uppercase text-xs font-bold">
+                                <tr>
+                                    <th className="p-3">Item</th>
+                                    <th className="p-3 text-center">Boxes</th>
+                                    <th className="p-3 text-center w-24">Std Wt (Kg)</th>
+                                    <th className="p-3 text-center">Loose Kg</th>
+                                    <th className="p-3 text-right">Total Kg</th>
+                                    <th className="p-3 text-right w-32">Price / Kg</th>
+                                    <th className="p-3 text-right">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y">
+                                {calculatedRows.map((row, idx) => (
+                                    <tr key={idx} className="hover:bg-blue-50">
+                                        <td className="p-3 font-bold text-slate-700">{row.name}</td>
+                                        <td className="p-3 text-center text-gray-600">{row.boxes}</td>
+                                        
+                                        {/* EDITABLE STANDARD WEIGHT */}
+                                        <td className="p-3">
+                                            <input 
+                                                type="number" 
+                                                className="border rounded px-2 py-1 w-full text-center font-bold text-blue-600 bg-white focus:ring-2 focus:ring-blue-500"
+                                                value={row.stdWeight}
+                                                onChange={(e) => updateRow(idx, 'stdWeight', e.target.value)}
+                                            />
+                                        </td>
+                                        
+                                        <td className="p-3 text-center text-gray-500">{row.loose > 0 ? row.loose : '-'}</td>
+                                        <td className="p-3 text-right font-mono font-bold bg-gray-50">{row.weight.toLocaleString()}</td>
+                                        
+                                        {/* PRICE INPUT */}
+                                        <td className="p-3">
+                                            <input 
+                                                type="number" 
+                                                className="border rounded px-2 py-1 w-full text-right font-bold focus:ring-2 focus:ring-green-500 outline-none"
+                                                placeholder="0.00"
+                                                value={row.price}
+                                                onChange={(e) => updateRow(idx, 'price', e.target.value)}
+                                            />
+                                        </td>
+                                        
+                                        <td className="p-3 text-right font-bold text-slate-800">{row.total.toLocaleString()}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Footer / Totals */}
+                    <div className="mt-6 border-t pt-6 bg-gray-50 p-6 rounded-xl">
+                        <div className="flex justify-end gap-12 text-sm">
+                            <div className="space-y-3 w-64">
+                                <div className="flex justify-between text-gray-500">
+                                    <span>Sub Total</span>
+                                    <span>₹{subTotal.toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-red-500 font-bold">
+                                    <span>Discount</span>
+                                    <input 
+                                        type="number" 
+                                        className="w-24 text-right border-b border-red-200 bg-transparent outline-none focus:border-red-500"
+                                        value={discount}
+                                        onChange={e => setDiscount(e.target.value)}
+                                    />
+                                </div>
+                                <div className="flex justify-between items-center text-2xl font-black text-slate-800 border-t border-gray-300 pt-2">
+                                    <span>Grand Total</span>
+                                    <span>₹{grandTotal.toLocaleString()}</span>
+                                </div>
+
+                                <div className="pt-4 border-t border-gray-200">
+                                    <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Payment Received Today</label>
+                                    <input 
+                                        type="number" 
+                                        className="w-full border p-2 rounded font-bold text-green-700"
+                                        placeholder="Enter amount..."
+                                        value={amountReceived}
+                                        onChange={e => setAmountReceived(e.target.value)}
+                                    />
+                                </div>
+
+                                <button 
+                                    onClick={handleSave} 
+                                    disabled={loading}
+                                    className="w-full bg-blue-900 text-white py-3 rounded-lg font-bold shadow-lg hover:bg-blue-800 transition-all flex justify-center items-center gap-2 mt-4"
+                                >
+                                    {loading ? "Saving..." : <><Save size={18}/> Finalize & Save Bill</>}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const PartyManager = () => (
+            <div className="p-8 text-center text-gray-400">
+                <Users size={48} className="mx-auto mb-4 opacity-20"/>
+                <h2 className="text-xl font-bold">Party Ledger</h2>
+                <p>Select a party to view their transaction history and detailed statement.</p>
+                <div className="mt-4 p-4 bg-yellow-50 text-yellow-800 text-xs inline-block rounded border border-yellow-200">
+                    Feature available in next update. Use Billing tab to create new parties for now.
+                </div>
+            </div>
+        );
+
         const root = createRoot(document.getElementById('root'));
-        root.render(<TruckLoadPlanner />);
+        root.render(<App />);
     </script>
 </body>
 </html>

@@ -3,10 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nellore Aqua Accounts</title>
+    <title>Nellore Aqua Accounts | Integrated Finance</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
-    
+    <style>
+        body { background-color: #f3f4f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        /* Clean loading spinner */
+        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #1e3a8a; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script type="importmap">
     {
@@ -18,12 +24,6 @@
         }
     }
     </script>
-
-    <style>
-        body { background-color: #f3f4f6; }
-        .input-std { @apply border rounded px-2 py-1 text-sm w-full focus:ring-2 focus:ring-blue-500 outline-none; }
-        .btn-primary { @apply bg-blue-900 text-white font-bold py-2 px-4 rounded hover:bg-blue-800 transition-colors; }
-    </style>
 </head>
 <body>
     <div id="root"></div>
@@ -31,11 +31,10 @@
     <script type="text/babel" data-type="module">
         import React, { useState, useEffect, useMemo } from 'react';
         import { createRoot } from 'react-dom/client';
-        import { Wallet, FileText, Users, Calculator, Save, ArrowRight, CheckCircle, Search, Plus, ArrowLeft, History } from 'lucide-react';
+        import { Wallet, FileText, Users, Save, ArrowRight, CheckCircle, Plus, ArrowLeft } from 'lucide-react';
         import { createClient } from '@supabase/supabase-js';
 
-        // --- 1. CONFIGURATION ---
-        // Reuse your existing keys (Same DB as Operations App)
+        // --- CONFIGURATION ---
         const supabaseUrl = 'https://wlntnttsliaygrqhfazj.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndsbnRudHRzbGlheWdycWhmYXpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4MzMzNjIsImV4cCI6MjA4MDQwOTM2Mn0.imoQLKoDxDVOmKbLOHVDsRxX5jRORMV5cYt2sFf9wiI';
         const supabase = createClient(supabaseUrl, supabaseKey);
@@ -44,117 +43,136 @@
             const [activeTab, setActiveTab] = useState('dashboard');
             const [pendingTrips, setPendingTrips] = useState([]);
             const [selectedTrip, setSelectedTrip] = useState(null);
+            const [stats, setStats] = useState({ receivable: 0, payable: 0 });
             
-            // --- INITIAL DATA FETCH ---
             useEffect(() => {
                 fetchPendingTrips();
+                fetchLedgerStats();
             }, []);
 
             const fetchPendingTrips = async () => {
-                // 1. Get all Trips from Operations App
-                const { data: trips, error } = await supabase
-                    .from('var_truck_trips')
-                    .select('*')
-                    .order('tripDate', { ascending: false });
-
-                if (error) console.error("Error fetching trips", error);
-
-                // 2. Get IDs of trips already billed (from Ledger)
+                const { data: trips, error } = await supabase.from('var_truck_trips').select('*').order('tripDate', { ascending: false });
+                if(error) console.error("Error fetching trips:", error);
+                
+                // Get billed IDs
                 const { data: billed } = await supabase.from('var_ledger').select('trip_id');
                 const billedIds = new Set(billed?.map(b => b.trip_id) || []);
-
-                // 3. Filter: Only show trips NOT yet billed
+                
                 if (trips) {
-                    const pending = trips.filter(t => !billedIds.has(t.id));
-                    setPendingTrips(pending);
+                    setPendingTrips(trips.filter(t => !billedIds.has(t.id)));
+                }
+            };
+
+            const fetchLedgerStats = async () => {
+                const { data: parties, error } = await supabase.from('var_parties').select('opening_balance');
+                if(error) {
+                    console.error("Error fetching parties:", error);
+                    return; // Fail silently on dashboard if table missing
+                }
+                if(parties) {
+                    let rec = 0; let pay = 0;
+                    parties.forEach(p => {
+                        const bal = parseFloat(p.opening_balance || 0);
+                        if(bal > 0) rec += bal;
+                        else pay += Math.abs(bal);
+                    });
+                    setStats({ receivable: rec, payable: pay });
                 }
             };
 
             return (
-                <div className="flex h-screen w-screen overflow-hidden">
+                <div className="flex h-screen w-screen overflow-hidden text-slate-800">
                     {/* Sidebar */}
-                    <div className="w-64 bg-slate-900 text-white flex flex-col hidden md:flex">
-                        <div className="p-6 font-black text-xl tracking-wider border-b border-slate-700">
-                            VAR ACCOUNTS
-                            <div className="text-xs text-slate-400 font-normal mt-1">Integrated Finance</div>
+                    <div className="w-64 bg-slate-900 text-white flex flex-col hidden md:flex shadow-2xl z-10">
+                        <div className="p-6 border-b border-slate-800">
+                            <div className="font-black text-xl tracking-wider text-blue-400">NELLORE AQUA</div>
+                            <div className="text-xs text-slate-400 font-medium tracking-widest mt-1">ACCOUNTS MODULE</div>
                         </div>
-                        <nav className="flex-1 p-4 space-y-2">
+                        <nav className="flex-1 p-4 space-y-2 mt-4">
                             <NavBtn label="Dashboard" icon={<Wallet size={20}/>} active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
                             <NavBtn label="Pending Bills" icon={<FileText size={20}/>} active={activeTab === 'billing'} onClick={() => setActiveTab('billing')} count={pendingTrips.length} />
-                            <NavBtn label="Parties / Ledger" icon={<Users size={20}/>} active={activeTab === 'parties'} onClick={() => setActiveTab('parties')} />
+                            <NavBtn label="Parties & Ledger" icon={<Users size={20}/>} active={activeTab === 'parties'} onClick={() => setActiveTab('parties')} />
                         </nav>
-                        <div className="p-4 text-xs text-slate-500 text-center">Nellore Aqua Tech</div>
                     </div>
 
-                    {/* Mobile Sidebar Replacement (Bottom Nav) for small screens would go here, sticking to desktop-first for accounts mostly */}
-                    
                     {/* Main Content */}
-                    <div className="flex-1 bg-gray-50 overflow-auto">
-                        {activeTab === 'dashboard' && <Dashboard pendingCount={pendingTrips.length} switchToBilling={() => setActiveTab('billing')} />}
+                    <div className="flex-1 bg-gray-50 overflow-auto relative">
+                        {/* Mobile Header */}
+                        <div className="md:hidden bg-slate-900 text-white p-4 flex justify-between items-center sticky top-0 z-20">
+                            <span className="font-bold">Aqua Accounts</span>
+                            <button onClick={() => setActiveTab('dashboard')}><Wallet size={20}/></button>
+                        </div>
+
+                        {activeTab === 'dashboard' && <Dashboard stats={stats} pendingCount={pendingTrips.length} switchToBilling={() => setActiveTab('billing')} />}
+                        
                         {activeTab === 'billing' && (
                             !selectedTrip 
                             ? <PendingList trips={pendingTrips} onSelect={setSelectedTrip} />
-                            : <InvoiceGenerator trip={selectedTrip} onBack={() => { setSelectedTrip(null); fetchPendingTrips(); }} />
+                            : <InvoiceGenerator trip={selectedTrip} onBack={() => { setSelectedTrip(null); fetchPendingTrips(); fetchLedgerStats(); }} />
                         )}
+                        
                         {activeTab === 'parties' && <PartyManager />}
                     </div>
                 </div>
             );
         };
 
-        // --- COMPONENTS ---
-
         const NavBtn = ({ label, icon, active, onClick, count }) => (
-            <button onClick={onClick} className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all ${active ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-300 hover:bg-slate-800'}`}>
+            <button onClick={onClick} className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all duration-200 ${active ? 'bg-blue-600 text-white shadow-lg translate-x-1' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                 <div className="flex items-center gap-3">{icon} <span className="font-bold text-sm">{label}</span></div>
-                {count > 0 && <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{count}</span>}
+                {count > 0 && <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">{count}</span>}
             </button>
         );
 
-        const Dashboard = ({ pendingCount, switchToBilling }) => (
-            <div className="p-8 max-w-5xl mx-auto">
-                <h1 className="text-2xl font-black text-slate-800 mb-6">Financial Overview</h1>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                        <div className="text-sm text-gray-400 font-bold uppercase mb-2">Pending Invoices</div>
+        const Dashboard = ({ stats, pendingCount, switchToBilling }) => (
+            <div className="p-6 md:p-10 max-w-6xl mx-auto">
+                <h1 className="text-3xl font-black text-slate-800 mb-2">Overview</h1>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 mt-6">
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 group hover:shadow-md transition-shadow cursor-pointer" onClick={switchToBilling}>
+                        <div className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-2">Pending Invoices</div>
                         <div className="text-4xl font-black text-orange-500">{pendingCount}</div>
-                        <div className="text-xs text-gray-500 mt-2">Trips completed but not billed</div>
-                        <button onClick={switchToBilling} className="mt-4 text-sm font-bold text-blue-600 hover:underline">Process Now &rarr;</button>
+                        <div className="text-xs text-gray-500 mt-2">Trips waiting for billing</div>
                     </div>
-                    <div className="bg-gradient-to-br from-blue-900 to-blue-800 text-white p-6 rounded-xl shadow-lg">
-                        <div className="text-sm text-blue-200 font-bold uppercase mb-2">Total Receivables</div>
-                        <div className="text-4xl font-black">₹ --</div>
-                        <div className="text-xs text-blue-300 mt-2">Outstanding from Buyers</div>
+                    <div className="bg-gradient-to-br from-blue-900 to-blue-800 text-white p-6 rounded-2xl shadow-lg">
+                        <div className="text-xs text-blue-200 font-bold uppercase tracking-wider mb-2">Receivables</div>
+                        <div className="text-4xl font-black">₹ {stats.receivable.toLocaleString()}</div>
+                        <div className="text-xs text-blue-300 mt-2">To be collected</div>
                     </div>
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                        <div className="text-sm text-gray-400 font-bold uppercase mb-2">Total Payables</div>
-                        <div className="text-4xl font-black text-slate-800">₹ --</div>
-                        <div className="text-xs text-gray-500 mt-2">Due to Suppliers</div>
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <div className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-2">Payables</div>
+                        <div className="text-4xl font-black text-slate-800">₹ {stats.payable.toLocaleString()}</div>
+                        <div className="text-xs text-gray-500 mt-2">To be paid</div>
                     </div>
                 </div>
             </div>
         );
 
         const PendingList = ({ trips, onSelect }) => (
-            <div className="p-8 max-w-5xl mx-auto">
-                <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2"><FileText /> Pending Trips for Billing</h2>
+            <div className="p-6 md:p-10 max-w-4xl mx-auto">
+                <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2"><FileText className="text-blue-600"/> Select Trip to Bill</h2>
                 {trips.length === 0 ? (
-                    <div className="text-center py-20 bg-white rounded-xl border border-dashed text-gray-400">All caught up! No pending trips.</div>
+                    <div className="flex flex-col items-center justify-center py-20 bg-white rounded-xl border-2 border-dashed border-gray-200">
+                        <CheckCircle size={40} className="text-green-500 mb-4"/>
+                        <div className="text-gray-400 font-medium">All caught up! No pending trips.</div>
+                    </div>
                 ) : (
                     <div className="grid gap-4">
                         {trips.map(trip => (
-                            <div key={trip.id} onClick={() => onSelect(trip)} className="bg-white p-4 rounded-xl shadow-sm border hover:shadow-md cursor-pointer transition-all flex justify-between items-center group">
+                            <div key={trip.id} onClick={() => onSelect(trip)} className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:border-blue-300 hover:shadow-md cursor-pointer transition-all flex justify-between items-center group relative overflow-hidden">
+                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-gray-200 group-hover:bg-blue-500 transition-colors"></div>
                                 <div>
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${trip.operationMode === 'Sales' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>{trip.operationMode}</span>
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${trip.operationMode === 'Sales' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>{trip.operationMode}</span>
                                         <span className="text-gray-400 text-xs font-mono">#{trip.referenceId || '---'}</span>
-                                        <span className="text-gray-400 text-xs">| {trip.tripDate}</span>
+                                        <span className="text-gray-500 text-xs font-medium">| {trip.tripDate}</span>
                                     </div>
-                                    <h3 className="font-bold text-lg text-slate-800">{trip.customerName || 'Unknown Party'}</h3>
-                                    <div className="text-xs text-gray-500">{trip.totalBoxes} Boxes Loaded</div>
+                                    <h3 className="font-bold text-lg text-slate-800 group-hover:text-blue-700 transition-colors">{trip.customerName || 'Unknown Party'}</h3>
+                                    <div className="text-xs text-gray-500 mt-1">{trip.totalBoxes} Boxes Loaded</div>
                                 </div>
-                                <div className="text-right">
-                                    <button className="bg-gray-100 text-gray-600 px-4 py-2 rounded-lg font-bold text-sm group-hover:bg-blue-600 group-hover:text-white transition-colors">Create Bill &rarr;</button>
+                                <div className="pl-4">
+                                    <div className="bg-gray-50 text-gray-400 p-2 rounded-full group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                        <ArrowRight size={20}/>
+                                    </div>
                                 </div>
                             </div>
                         ))}
@@ -163,59 +181,41 @@
             </div>
         );
 
-        // --- CORE LOGIC: THE INVOICE GENERATOR ---
         const InvoiceGenerator = ({ trip, onBack }) => {
-            // 1. Prepare Initial Rows from Trip Data
             const [rows, setRows] = useState([]);
             const [partyList, setPartyList] = useState([]);
             const [selectedPartyId, setSelectedPartyId] = useState('');
             const [loading, setLoading] = useState(false);
-            
-            // Financial State
             const [discount, setDiscount] = useState(0);
             const [amountReceived, setAmountReceived] = useState(0);
 
-            // Fetch Parties & Init Rows
             useEffect(() => {
-                const init = async () => {
-                    // Fetch Parties
-                    const { data } = await supabase.from('var_parties').select('*');
+                fetchParties();
+                // Parse Items
+                let initialItems = [];
+                if (trip.detailedItems) {
+                    initialItems = trip.detailedItems.map(i => ({ name: i.name, boxes: Number(i.boxes) || 0, loose: Number(i.looseKg) || 0, stdWeight: 35, price: 0 }));
+                } else if (trip.summary) {
+                    initialItems = Object.entries(trip.summary).filter(([k]) => !k.startsWith('__')).map(([k, v]) => ({ name: k, boxes: Number(v), loose: 0, stdWeight: 35, price: 0 }));
+                }
+                setRows(initialItems);
+            }, [trip]);
+
+            const fetchParties = async () => {
+                const { data, error } = await supabase.from('var_parties').select('*').order('name');
+                if (error) {
+                    console.error("Error fetching parties:", error);
+                    alert("System Error: Could not fetch parties. Have you run the SQL script?");
+                } else {
                     setPartyList(data || []);
-                    
-                    // Auto-select party if name matches
+                    // Auto-select if name matches
                     if (data && trip.customerName) {
                         const match = data.find(p => p.name.toLowerCase() === trip.customerName.toLowerCase());
                         if (match) setSelectedPartyId(match.id);
                     }
+                }
+            };
 
-                    // Parse Trip Items
-                    let initialItems = [];
-                    if (trip.detailedItems) {
-                        initialItems = trip.detailedItems.map(i => ({
-                            name: i.name,
-                            boxes: Number(i.boxes) || 0,
-                            loose: Number(i.looseKg) || 0,
-                            stdWeight: 35, // Default Standard
-                            price: 0
-                        }));
-                    } else if (trip.summary) {
-                        // Legacy support for summary-only trips
-                        initialItems = Object.entries(trip.summary)
-                            .filter(([k]) => !k.startsWith('__'))
-                            .map(([k, v]) => ({
-                                name: k,
-                                boxes: Number(v),
-                                loose: 0,
-                                stdWeight: 35,
-                                price: 0
-                            }));
-                    }
-                    setRows(initialItems);
-                };
-                init();
-            }, [trip]);
-
-            // Calculation Logic
             const calculatedRows = useMemo(() => {
                 return rows.map(row => {
                     const weight = (row.boxes * parseFloat(row.stdWeight || 0)) + row.loose;
@@ -227,154 +227,141 @@
             const subTotal = calculatedRows.reduce((sum, r) => sum + r.total, 0);
             const grandTotal = subTotal - parseFloat(discount || 0);
 
-            // Handlers
             const updateRow = (index, field, value) => {
                 const newRows = [...rows];
                 newRows[index][field] = value;
                 setRows(newRows);
             };
 
-            const handleSave = async () => {
-                if (!selectedPartyId) return alert("Please select or create a Party first.");
-                if (grandTotal <= 0) return alert("Invoice total cannot be zero.");
+            // --- FIXED: ADD NEW PARTY ---
+            const addNewParty = async () => {
+                const name = prompt("Enter new Party Name:");
+                if (!name) return;
 
                 setLoading(true);
-                try {
-                    // 1. Create Ledger Entry
-                    const { data: ledgerEntry, error: lErr } = await supabase
-                        .from('var_ledger')
-                        .insert([{
-                            party_id: selectedPartyId,
-                            trip_id: trip.id,
-                            transaction_date: new Date(),
-                            description: `Bill for Trip #${trip.referenceId || '---'} (${trip.operationMode})`,
-                            bill_amount: grandTotal,
-                            paid_amount: amountReceived,
-                            discount: discount,
-                            balance_after: 0 // Trigger will handle or we calc later
-                        }])
-                        .select()
-                        .single();
+                // Explicitly setting opening_balance to 0 and type to Customer
+                const { data, error } = await supabase
+                    .from('var_parties')
+                    .insert([{ name: name, type: 'Customer', opening_balance: 0 }])
+                    .select()
+                    .single();
 
-                    if (lErr) throw lErr;
+                setLoading(false);
 
-                    // 2. Save Line Items (For future editing)
-                    const lineItems = calculatedRows.map(r => ({
-                        ledger_id: ledgerEntry.id,
-                        item_name: r.name,
-                        boxes: r.boxes,
-                        loose_kg: r.loose,
-                        std_weight: r.stdWeight,
-                        price_per_kg: r.price,
-                        total_weight: r.weight,
-                        line_total: r.total
-                    }));
-
-                    const { error: iErr } = await supabase.from('var_invoice_items').insert(lineItems);
-                    if (iErr) throw iErr;
-
-                    // 3. Update Party Balance
-                    // (Ideally done via DB Trigger, but doing manual logic here for simplicity)
-                    // Fetch current balance
-                    const { data: party } = await supabase.from('var_parties').select('opening_balance').eq('id', selectedPartyId).single();
-                    let currentBal = parseFloat(party.opening_balance || 0);
-                    
-                    // Logic: If Sale, they owe us (+). If Purchase, we owe them (-).
-                    const netChange = grandTotal - amountReceived;
-                    const finalBal = trip.operationMode === 'Sales' 
-                        ? currentBal + netChange 
-                        : currentBal - netChange;
-
-                    await supabase.from('var_parties').update({ opening_balance: finalBal }).eq('id', selectedPartyId);
-
-                    alert("Invoice Saved Successfully!");
-                    onBack(); // Return to list
-
-                } catch (e) {
-                    console.error(e);
-                    alert("Error saving: " + e.message);
-                } finally {
-                    setLoading(false);
+                if (error) {
+                    console.error(error);
+                    alert(`Error creating party: ${error.message}\nTip: Check if table 'var_parties' exists.`);
+                } else if (data) {
+                    setPartyList([...partyList, data]);
+                    setSelectedPartyId(data.id);
+                    alert("Party created successfully!");
                 }
             };
 
-            const addNewParty = async () => {
-                const name = prompt("Enter new party Name:");
-                if (!name) return;
-                const { data, error } = await supabase.from('var_parties').insert([{ name, type: 'Customer' }]).select().single();
-                if (data) {
-                    setPartyList([...partyList, data]);
-                    setSelectedPartyId(data.id);
+            // --- FIXED: SAVE INVOICE ---
+            const handleSave = async () => {
+                if (!selectedPartyId) return alert("Please select or create a Party.");
+                if (grandTotal <= 0) return alert("Total cannot be zero.");
+                
+                setLoading(true);
+                try {
+                    // 1. Ledger Entry
+                    const { data: ledgerEntry, error: lErr } = await supabase.from('var_ledger').insert([{
+                        party_id: selectedPartyId, 
+                        trip_id: trip.id, 
+                        transaction_date: new Date(),
+                        description: `Bill Ref #${trip.referenceId}`, 
+                        bill_amount: grandTotal,
+                        paid_amount: amountReceived, 
+                        discount: discount, 
+                        balance_after: 0
+                    }]).select().single();
+
+                    if (lErr) throw new Error("Ledger Save Failed: " + lErr.message);
+
+                    // 2. Line Items
+                    const lineItems = calculatedRows.map(r => ({
+                        ledger_id: ledgerEntry.id, 
+                        item_name: r.name, 
+                        boxes: r.boxes, 
+                        loose_kg: r.loose,
+                        std_weight: r.stdWeight, 
+                        price_per_kg: r.price, 
+                        total_weight: r.weight, 
+                        line_total: r.total
+                    }));
+                    
+                    const { error: iErr } = await supabase.from('var_invoice_items').insert(lineItems);
+                    if (iErr) throw new Error("Items Save Failed: " + iErr.message);
+
+                    // 3. Update Party Balance
+                    const { data: party } = await supabase.from('var_parties').select('opening_balance').eq('id', selectedPartyId).single();
+                    let currentBal = parseFloat(party.opening_balance || 0);
+                    const netChange = grandTotal - amountReceived;
+                    // Sales = They owe us more (+)
+                    const finalBal = trip.operationMode === 'Sales' ? currentBal + netChange : currentBal - netChange;
+                    
+                    const { error: pErr } = await supabase.from('var_parties').update({ opening_balance: finalBal }).eq('id', selectedPartyId);
+                    if (pErr) throw new Error("Balance Update Failed: " + pErr.message);
+
+                    alert("Invoice Saved Successfully!");
+                    onBack();
+                } catch (e) { 
+                    console.error(e);
+                    alert("Error: " + e.message); 
+                } finally { 
+                    setLoading(false); 
                 }
             };
 
             return (
-                <div className="p-4 max-w-6xl mx-auto bg-white min-h-screen shadow-2xl flex flex-col">
+                <div className="flex flex-col h-full bg-white">
                     {/* Header */}
-                    <div className="flex items-center gap-4 mb-6 border-b pb-4">
-                        <button onClick={onBack} className="p-2 hover:bg-gray-100 rounded-full"><ArrowLeft /></button>
+                    <div className="flex items-center gap-4 px-6 py-4 border-b bg-white sticky top-0 z-10">
+                        <button onClick={onBack} className="p-2 hover:bg-gray-100 rounded-full text-slate-500"><ArrowLeft size={20}/></button>
                         <div>
-                            <h2 className="text-xl font-black text-slate-800">New Invoice</h2>
-                            <div className="text-xs text-gray-500">Ref: {trip.referenceId} | Date: {trip.tripDate}</div>
+                            <h2 className="text-xl font-black text-slate-800">Generate Invoice</h2>
+                            <div className="text-xs text-gray-500 font-mono">Ref: {trip.referenceId} | {trip.tripDate}</div>
                         </div>
                         <div className="ml-auto flex items-center gap-2">
-                            <select 
-                                className="border p-2 rounded font-bold text-sm min-w-[200px]"
-                                value={selectedPartyId}
-                                onChange={e => setSelectedPartyId(e.target.value)}
-                            >
+                            <select className="border-2 border-gray-200 focus:border-blue-500 p-2 rounded-lg font-bold text-sm min-w-[200px] outline-none" value={selectedPartyId} onChange={e => setSelectedPartyId(e.target.value)}>
                                 <option value="">-- Select Party --</option>
                                 {partyList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                             </select>
-                            <button onClick={addNewParty} className="bg-gray-200 p-2 rounded hover:bg-gray-300"><Plus size={16}/></button>
+                            <button onClick={addNewParty} className="bg-blue-50 text-blue-600 p-2 rounded-lg hover:bg-blue-100"><Plus size={20}/></button>
                         </div>
                     </div>
 
-                    {/* Table */}
-                    <div className="flex-1 overflow-auto">
-                        <table className="w-full text-sm text-left">
-                            <thead className="bg-gray-100 text-gray-600 uppercase text-xs font-bold">
-                                <tr>
-                                    <th className="p-3">Item</th>
+                    {/* Table Area */}
+                    <div className="flex-1 overflow-auto p-6">
+                        <table className="w-full text-sm text-left border-collapse">
+                            <thead>
+                                <tr className="text-gray-400 border-b-2 border-gray-100 text-xs uppercase tracking-wider">
+                                    <th className="p-3 font-bold">Fish Name</th>
                                     <th className="p-3 text-center">Boxes</th>
-                                    <th className="p-3 text-center w-24">Std Wt (Kg)</th>
+                                    <th className="p-3 text-center w-24">Std Wt (35)</th>
                                     <th className="p-3 text-center">Loose Kg</th>
                                     <th className="p-3 text-right">Total Kg</th>
-                                    <th className="p-3 text-right w-32">Price / Kg</th>
+                                    <th className="p-3 text-right w-32">Price/Kg</th>
                                     <th className="p-3 text-right">Total</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y">
+                            <tbody className="divide-y divide-gray-50">
                                 {calculatedRows.map((row, idx) => (
-                                    <tr key={idx} className="hover:bg-blue-50">
-                                        <td className="p-3 font-bold text-slate-700">{row.name}</td>
-                                        <td className="p-3 text-center text-gray-600">{row.boxes}</td>
-                                        
-                                        {/* EDITABLE STANDARD WEIGHT */}
+                                    <tr key={idx} className="hover:bg-blue-50 transition-colors group">
+                                        <td className="p-3 font-bold text-slate-700 text-base">{row.name}</td>
+                                        <td className="p-3 text-center text-gray-600 font-medium">{row.boxes}</td>
                                         <td className="p-3">
-                                            <input 
-                                                type="number" 
-                                                className="border rounded px-2 py-1 w-full text-center font-bold text-blue-600 bg-white focus:ring-2 focus:ring-blue-500"
-                                                value={row.stdWeight}
-                                                onChange={(e) => updateRow(idx, 'stdWeight', e.target.value)}
-                                            />
+                                            <input type="number" className="bg-gray-50 border-gray-200 rounded px-2 py-1 w-full text-center font-bold text-gray-500 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
+                                            value={row.stdWeight} onChange={(e) => updateRow(idx, 'stdWeight', e.target.value)} />
                                         </td>
-                                        
                                         <td className="p-3 text-center text-gray-500">{row.loose > 0 ? row.loose : '-'}</td>
-                                        <td className="p-3 text-right font-mono font-bold bg-gray-50">{row.weight.toLocaleString()}</td>
-                                        
-                                        {/* PRICE INPUT */}
+                                        <td className="p-3 text-right font-mono font-bold bg-gray-50 text-slate-600 rounded">{row.weight.toLocaleString()}</td>
                                         <td className="p-3">
-                                            <input 
-                                                type="number" 
-                                                className="border rounded px-2 py-1 w-full text-right font-bold focus:ring-2 focus:ring-green-500 outline-none"
-                                                placeholder="0.00"
-                                                value={row.price}
-                                                onChange={(e) => updateRow(idx, 'price', e.target.value)}
-                                            />
+                                            <input type="number" className="border-2 border-gray-200 rounded px-2 py-1.5 w-full text-right font-bold text-lg focus:border-green-500 outline-none transition-all" 
+                                            placeholder="0.00" value={row.price} onChange={(e) => updateRow(idx, 'price', e.target.value)} />
                                         </td>
-                                        
-                                        <td className="p-3 text-right font-bold text-slate-800">{row.total.toLocaleString()}</td>
+                                        <td className="p-3 text-right font-black text-slate-800 text-lg">{row.total.toLocaleString()}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -382,46 +369,25 @@
                     </div>
 
                     {/* Footer / Totals */}
-                    <div className="mt-6 border-t pt-6 bg-gray-50 p-6 rounded-xl">
-                        <div className="flex justify-end gap-12 text-sm">
-                            <div className="space-y-3 w-64">
-                                <div className="flex justify-between text-gray-500">
-                                    <span>Sub Total</span>
-                                    <span>₹{subTotal.toLocaleString()}</span>
-                                </div>
-                                <div className="flex justify-between items-center text-red-500 font-bold">
-                                    <span>Discount</span>
-                                    <input 
-                                        type="number" 
-                                        className="w-24 text-right border-b border-red-200 bg-transparent outline-none focus:border-red-500"
-                                        value={discount}
-                                        onChange={e => setDiscount(e.target.value)}
-                                    />
-                                </div>
-                                <div className="flex justify-between items-center text-2xl font-black text-slate-800 border-t border-gray-300 pt-2">
-                                    <span>Grand Total</span>
-                                    <span>₹{grandTotal.toLocaleString()}</span>
-                                </div>
-
-                                <div className="pt-4 border-t border-gray-200">
-                                    <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Payment Received Today</label>
-                                    <input 
-                                        type="number" 
-                                        className="w-full border p-2 rounded font-bold text-green-700"
-                                        placeholder="Enter amount..."
-                                        value={amountReceived}
-                                        onChange={e => setAmountReceived(e.target.value)}
-                                    />
-                                </div>
-
-                                <button 
-                                    onClick={handleSave} 
-                                    disabled={loading}
-                                    className="w-full bg-blue-900 text-white py-3 rounded-lg font-bold shadow-lg hover:bg-blue-800 transition-all flex justify-center items-center gap-2 mt-4"
-                                >
-                                    {loading ? "Saving..." : <><Save size={18}/> Finalize & Save Bill</>}
-                                </button>
+                    <div className="border-t bg-gray-50 p-6">
+                        <div className="max-w-xs ml-auto space-y-3">
+                            <div className="flex justify-between text-gray-500 text-sm font-medium"><span>Sub Total</span><span>₹{subTotal.toLocaleString()}</span></div>
+                            <div className="flex justify-between items-center text-red-500 font-bold text-sm">
+                                <span>Discount</span>
+                                <input type="number" className="w-24 text-right border-b border-red-200 bg-transparent outline-none focus:border-red-500" value={discount} onChange={e => setDiscount(e.target.value)} />
                             </div>
+                            <div className="flex justify-between items-center text-2xl font-black text-slate-800 border-t border-gray-200 pt-3">
+                                <span>Grand Total</span>
+                                <span>₹{grandTotal.toLocaleString()}</span>
+                            </div>
+                            <div className="pt-2">
+                                <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Cash Received</label>
+                                <input type="number" className="w-full border-2 border-green-200 bg-green-50 p-2 rounded-lg font-bold text-green-800 focus:border-green-500 outline-none" 
+                                placeholder="0.00" value={amountReceived} onChange={e => setAmountReceived(e.target.value)} />
+                            </div>
+                            <button onClick={handleSave} disabled={loading} className="w-full bg-slate-900 text-white py-3.5 rounded-xl font-bold shadow-lg hover:bg-slate-800 transition-all flex justify-center items-center gap-2 mt-4">
+                                {loading ? <div className="loader"></div> : <><Save size={18}/> Finalize Bill</>}
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -429,12 +395,12 @@
         };
 
         const PartyManager = () => (
-            <div className="p-8 text-center text-gray-400">
-                <Users size={48} className="mx-auto mb-4 opacity-20"/>
-                <h2 className="text-xl font-bold">Party Ledger</h2>
-                <p>Select a party to view their transaction history and detailed statement.</p>
-                <div className="mt-4 p-4 bg-yellow-50 text-yellow-800 text-xs inline-block rounded border border-yellow-200">
-                    Feature available in next update. Use Billing tab to create new parties for now.
+            <div className="flex flex-col items-center justify-center h-full text-center text-gray-400">
+                <Users size={64} className="mb-4 opacity-10"/>
+                <h2 className="text-2xl font-bold text-gray-300">Party Ledger</h2>
+                <p className="mt-2 text-sm">Select a party to view their transaction history.</p>
+                <div className="mt-6 px-4 py-2 bg-yellow-50 text-yellow-700 text-xs font-bold rounded-full border border-yellow-100">
+                    Feature Coming Soon
                 </div>
             </div>
         );

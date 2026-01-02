@@ -239,16 +239,26 @@
         };
 
         const InvoiceGenerator = ({ trip, existingBill, banks, onBack }) => {
-            const [rows, setRows] = useState([]); const [partyList, setPartyList] = useState([]); const [selectedPartyId, setSelectedPartyId] = useState(''); const [loading, setLoading] = useState(false); const [showAddParty, setShowAddParty] = useState(false); const [discount, setDiscount] = useState(0); const [amountReceived, setAmountReceived] = useState(0); const [selectedBankId, setSelectedBankId] = useState(banks[0]?.id || ''); const isEditMode = !!existingBill; const opMode = isEditMode ? (existingBill.bill_amount > 0 ? 'Sales' : 'Purchase') : (trip.operationMode || 'Sales'); const isSale = ['Sale', 'Sales', 'sale', 'sales'].includes(opMode);
+            const [rows, setRows] = useState([]); const [partyList, setPartyList] = useState([]); const [selectedPartyId, setSelectedPartyId] = useState(''); const [loading, setLoading] = useState(false); const [showAddParty, setShowAddParty] = useState(false); const [discount, setDiscount] = useState(0); const [amountReceived, setAmountReceived] = useState(0); const [selectedBankId, setSelectedBankId] = useState(banks[0]?.id || ''); const [oldBalance, setOldBalance] = useState(0); const isEditMode = !!existingBill; const opMode = isEditMode ? (existingBill.bill_amount > 0 ? 'Sales' : 'Purchase') : (trip.operationMode || 'Sales'); const isSale = ['Sale', 'Sales', 'sale', 'sales'].includes(opMode);
             useEffect(() => { fetchParties(); if (isEditMode) loadExistingBill(); else if (trip) loadFromTrip(); }, [trip, existingBill]);
             const fetchParties = async () => { const { data } = await supabase.from('var_parties').select('*').neq('type', 'Bank').order('name'); setPartyList(data || []); };
+            useEffect(() => { if(selectedPartyId) { const p = partyList.find(x => x.id === selectedPartyId); if(p) setOldBalance(parseFloat(p.opening_balance || 0)); } }, [selectedPartyId, partyList]);
             const loadFromTrip = () => { const mapper = (i, boxes, loose) => ({ name: i.name || i, boxes: Number(boxes) || 0, loose: Number(loose) || 0, stdWeight: 35, price: 0, discPercent: 0, manualRounded: null }); let initialItems = []; if (trip.detailedItems) initialItems = trip.detailedItems.map(i => mapper(i, i.boxes, i.looseKg)); else if (trip.summary) initialItems = Object.entries(trip.summary).filter(([k]) => !k.startsWith('__')).map(([k, v]) => mapper(k, v, 0)); setRows(initialItems); if (partyList.length > 0 && trip.customerName) { const match = partyList.find(p => p.name.toLowerCase() === trip.customerName.toLowerCase()); if (match) setSelectedPartyId(match.id); } };
             const loadExistingBill = async () => { setSelectedPartyId(existingBill.party_id); setDiscount(existingBill.discount); setAmountReceived(existingBill.paid_amount); const { data: items } = await supabase.from('var_invoice_items').select('*').eq('ledger_id', existingBill.id); if (items) { const loadedRows = items.map(i => ({ name: i.item_name, boxes: Number(i.boxes), loose: Number(i.loose_kg), stdWeight: Number(i.std_weight), price: Number(i.price_per_kg), discPercent: Number(i.disc_percent), manualRounded: Number(i.total_weight) })); setRows(loadedRows); } };
             const getSmartRounded = (val) => { const weight = parseFloat(val || 0); const decimal = weight - Math.floor(weight); const d = Math.round(decimal * 10) / 10; if (d < 0.5) return Math.floor(weight); if (d > 0.5) return Math.ceil(weight); return weight; };
             const calculatedRows = useMemo(() => { return rows.map(row => { const grossWeight = (row.boxes * parseFloat(row.stdWeight || 0)) + row.loose; const disc = parseFloat(row.discPercent || 0); const netWeight = grossWeight - (grossWeight * (disc / 100)); const finalWeight = row.manualRounded !== null ? parseFloat(row.manualRounded) : getSmartRounded(netWeight); const total = finalWeight * parseFloat(row.price || 0); return { ...row, grossWeight, netWeight, finalWeight, total }; }); }, [rows]);
-            const subTotal = calculatedRows.reduce((sum, r) => sum + r.total, 0); const grandTotal = subTotal - parseFloat(discount || 0); const updateRow = (index, field, value) => { const newRows = [...rows]; newRows[index][field] = value; if (['boxes', 'stdWeight', 'loose', 'discPercent'].includes(field)) newRows[index]['manualRounded'] = null; setRows(newRows); };
+            const subTotal = calculatedRows.reduce((sum, r) => sum + r.total, 0); const grandTotal = subTotal - parseFloat(discount || 0);
+            
+            // --- NET BALANCE CALCULATION ---
+            const finalClosingBalance = useMemo(() => {
+                // Sale: Adds to debt (Positive logic). Purchase: Subtracts (Negative logic).
+                if(isSale) return oldBalance + grandTotal - parseFloat(amountReceived||0);
+                else return oldBalance - grandTotal + parseFloat(amountReceived||0);
+            }, [oldBalance, grandTotal, amountReceived, isSale]);
+
+            const updateRow = (index, field, value) => { const newRows = [...rows]; newRows[index][field] = value; if (['boxes', 'stdWeight', 'loose', 'discPercent'].includes(field)) newRows[index]['manualRounded'] = null; setRows(newRows); };
             const handleSave = async () => { if (!selectedPartyId) return alert("Select Party"); if (grandTotal <= 0) return alert("Total is 0"); setLoading(true); try { const payAmt = parseFloat(amountReceived || 0); const { data: party } = await supabase.from('var_parties').select('opening_balance').eq('id', selectedPartyId).single(); let currentBal = parseFloat(party.opening_balance || 0); let balanceCorrection = 0; if (isEditMode) { const oldNet = existingBill.bill_amount - existingBill.paid_amount; if(isSale) balanceCorrection -= oldNet; else balanceCorrection += oldNet; } const newNet = grandTotal - payAmt; if(isSale) balanceCorrection += newNet; else balanceCorrection -= newNet; await supabase.from('var_parties').update({ opening_balance: currentBal + balanceCorrection }).eq('id', selectedPartyId); if(payAmt > 0 && selectedBankId) { const { data: b } = await supabase.from('var_parties').select('opening_balance').eq('id', selectedBankId).single(); let bBal = parseFloat(b.opening_balance || 0); if(isSale) bBal += payAmt; else bBal -= payAmt; await supabase.from('var_parties').update({ opening_balance: bBal }).eq('id', selectedBankId); } let ledgerId = existingBill?.id; const desc = isEditMode ? existingBill.description : `Bill Ref #${trip.referenceId} (${isSale ? 'Sale' : 'Purchase'})`; if (isEditMode) { await supabase.from('var_ledger').update({ bill_amount: grandTotal, paid_amount: payAmt, discount, description: desc }).eq('id', ledgerId); await supabase.from('var_invoice_items').delete().eq('ledger_id', ledgerId); } else { const { data: newEntry } = await supabase.from('var_ledger').insert([{ party_id: selectedPartyId, trip_id: trip.id, transaction_date: new Date(), description: desc, bill_amount: grandTotal, paid_amount: payAmt, discount, balance_after: 0 }]).select().single(); ledgerId = newEntry.id; } const lineItems = calculatedRows.map(r => ({ ledger_id: ledgerId, item_name: r.name, boxes: r.boxes, loose_kg: r.loose, std_weight: r.stdWeight, price_per_kg: r.price, disc_percent: r.discPercent, gross_weight: r.grossWeight, total_weight: r.finalWeight, line_total: r.total })); await supabase.from('var_invoice_items').insert(lineItems); alert("Saved!"); onBack(); } catch (e) { alert(e.message); } finally { setLoading(false); } };
-            return (<div className="flex flex-col h-full bg-white">{showAddParty && <AddPartyModal onClose={() => setShowAddParty(false)} onSuccess={(newParty) => { setPartyList([...partyList, newParty]); setSelectedPartyId(newParty.id); }} />}<div className="flex items-center gap-4 px-6 py-4 border-b bg-white sticky top-0 z-10"><button onClick={onBack} className="p-2 hover:bg-gray-100 rounded-full text-slate-500"><ArrowLeft size={20}/></button><div><h2 className="text-xl font-black text-slate-800">{isEditMode ? "Edit" : "Invoice"}</h2></div><div className="ml-auto flex items-center gap-2">{!isEditMode && (<><select className="border-2 border-gray-200 p-2 rounded-lg font-bold text-sm max-w-[150px]" value={selectedPartyId} onChange={e => setSelectedPartyId(e.target.value)}><option value="">Party</option>{partyList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select><button onClick={() => setShowAddParty(true)} className="bg-blue-600 text-white p-2 rounded-lg"><Plus size={20}/></button></>)}</div></div><div className="flex-1 overflow-auto p-4"><table className="w-full text-sm text-left border-collapse"><thead><tr className="text-gray-400 border-b text-xs uppercase"><th className="p-2">Item</th><th className="p-2 text-center">Box</th><th className="p-2 text-center">Wt</th><th className="p-2 text-center">Net</th><th className="p-2 text-center">Rd</th><th className="p-2 text-right">Price</th><th className="p-2 text-right">Total</th></tr></thead><tbody className="divide-y">{calculatedRows.map((row, idx) => (<tr key={idx}><td className="p-2 font-bold">{row.name}</td><td className="p-2 text-center">{row.boxes}</td><td className="p-2"><input type="number" className="bg-gray-50 w-full text-center rounded" value={row.stdWeight} onChange={(e) => updateRow(idx, 'stdWeight', e.target.value)} /></td><td className="p-2 text-center">{row.netWeight.toFixed(1)}</td><td className="p-2"><input type="number" className="w-full text-center font-bold text-blue-900 border rounded" value={row.finalWeight} onChange={(e) => updateRow(idx, 'manualRounded', e.target.value)} /></td><td className="p-2"><input type="number" className="w-full text-right border rounded" value={row.price} onChange={(e) => updateRow(idx, 'price', e.target.value)} /></td><td className="p-2 text-right font-black">{row.total.toLocaleString()}</td></tr>))}</tbody></table></div><div className="border-t p-4 space-y-3 bg-gray-50"><div className="flex justify-between font-bold text-gray-500"><span>Sub Total</span><span>₹{subTotal.toLocaleString()}</span></div><div className="flex justify-between items-center text-sm"><span>Discount</span><input type="number" className="w-24 text-right border-b border-gray-300 bg-transparent" value={discount} onChange={e => setDiscount(e.target.value)} placeholder="0" /></div><div className="flex justify-between items-center text-2xl font-black"><span>Total</span><span>₹{grandTotal.toLocaleString()}</span></div><div className="pt-2"><label className="block text-xs font-bold text-gray-400 mb-1">{isSale ? "Received" : "Paid"}</label><div className="flex gap-2"><input type="number" className="flex-1 border p-2 rounded font-bold" value={amountReceived} onChange={e => setAmountReceived(e.target.value)} /><select className="border p-2 rounded w-1/3" value={selectedBankId} onChange={e => setSelectedBankId(e.target.value)}>{banks.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select></div></div><button onClick={handleSave} disabled={loading} className="w-full bg-blue-900 text-white py-3 rounded-lg font-bold shadow-lg mt-2">{loading ? "Saving..." : "Save"}</button></div></div>);
+            return (<div className="flex flex-col h-full bg-white">{showAddParty && <AddPartyModal onClose={() => setShowAddParty(false)} onSuccess={(newParty) => { setPartyList([...partyList, newParty]); setSelectedPartyId(newParty.id); }} />}<div className="flex items-center gap-4 px-6 py-4 border-b bg-white sticky top-0 z-10"><button onClick={onBack} className="p-2 hover:bg-gray-100 rounded-full text-slate-500"><ArrowLeft size={20}/></button><div><h2 className="text-xl font-black text-slate-800">{isEditMode ? "Edit" : "Invoice"}</h2></div><div className="ml-auto flex items-center gap-2">{!isEditMode && (<><select className="border-2 border-gray-200 p-2 rounded-lg font-bold text-sm max-w-[150px]" value={selectedPartyId} onChange={e => setSelectedPartyId(e.target.value)}><option value="">Party</option>{partyList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select><button onClick={() => setShowAddParty(true)} className="bg-blue-600 text-white p-2 rounded-lg"><Plus size={20}/></button></>)}</div></div><div className="flex-1 overflow-auto p-4"><table className="w-full text-sm text-left border-collapse"><thead><tr className="text-gray-400 border-b text-xs uppercase"><th className="p-2">Item</th><th className="p-2 text-center">Box</th><th className="p-2 text-center">Wt</th><th className="p-2 text-center">Net</th><th className="p-2 text-center">Rd</th><th className="p-2 text-right">Price</th><th className="p-2 text-right">Total</th></tr></thead><tbody className="divide-y">{calculatedRows.map((row, idx) => (<tr key={idx}><td className="p-2 font-bold">{row.name}</td><td className="p-2 text-center">{row.boxes}</td><td className="p-2"><input type="number" className="bg-gray-50 w-full text-center rounded" value={row.stdWeight} onChange={(e) => updateRow(idx, 'stdWeight', e.target.value)} /></td><td className="p-2 text-center">{row.netWeight.toFixed(1)}</td><td className="p-2"><input type="number" className="w-full text-center font-bold text-blue-900 border rounded" value={row.finalWeight} onChange={(e) => updateRow(idx, 'manualRounded', e.target.value)} /></td><td className="p-2"><input type="number" className="w-full text-right border rounded" value={row.price} onChange={(e) => updateRow(idx, 'price', e.target.value)} /></td><td className="p-2 text-right font-black">{row.total.toLocaleString()}</td></tr>))}</tbody></table></div><div className="border-t p-4 space-y-2 bg-gray-50"><div className="flex justify-between font-bold text-gray-500 text-xs"><span>Sub Total</span><span>₹{subTotal.toLocaleString()}</span></div><div className="flex justify-between items-center text-xs text-gray-500"><span>Discount</span><input type="number" className="w-20 text-right border-b bg-transparent" value={discount} onChange={e => setDiscount(e.target.value)} /></div><div className="flex justify-between items-center text-xl font-black border-t pt-2"><span>Grand Total</span><span>₹{grandTotal.toLocaleString()}</span></div><div className="flex justify-between text-xs text-blue-600 font-bold"><span>Prev. Balance</span><span>₹{oldBalance.toLocaleString()}</span></div><div className="flex justify-between text-sm text-slate-800 font-black border-t pt-1"><span>Net Payable</span><span>₹{finalClosingBalance.toLocaleString()}</span></div><div className="pt-2"><div className="flex gap-2"><input type="number" className="flex-1 border p-2 rounded font-bold" value={amountReceived} onChange={e => setAmountReceived(e.target.value)} placeholder="Paid" /><select className="border p-2 rounded w-1/3" value={selectedBankId} onChange={e => setSelectedBankId(e.target.value)}>{banks.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select></div></div><button onClick={handleSave} disabled={loading} className="w-full bg-blue-900 text-white py-3 rounded-lg font-bold shadow-lg mt-2">{loading ? "Saving..." : "Save"}</button></div></div>);
         };
 
         const PartyManager = ({ banks, onEditBill, onRefresh }) => {
@@ -258,7 +268,7 @@
             const fetchLedger = async (party) => { setSelectedParty(party); setLoading(true); const { data } = await supabase.from('var_ledger').select('*').eq('party_id', party.id).order('transaction_date', { ascending: false }); setLedger(data || []); setLoading(false); };
             const handleDeleteParty = async (id) => { if(!confirm("Delete Party?")) return; await supabase.from('var_ledger').delete().eq('party_id', id); await supabase.from('var_parties').delete().eq('id', id); alert("Deleted"); fetchParties(); setSelectedParty(null); };
             
-            // --- PDF LOGIC STARTS HERE ---
+            // --- PDF GENERATOR (WITH RIGHT-ALIGNED TOTALS & BALANCE) ---
             const generateInvoicePDF = async (item) => { 
                 setPdfLoading(item.id); 
                 try { 
@@ -266,32 +276,24 @@
                     const isPayment = item.bill_amount === 0; 
                     if (!isPayment && (!items || items.length === 0)) throw new Error("Ghost bill found."); 
                     const isSale = !item.description.includes('Purchase'); 
+                    
+                    // Fetch Current Party Balance Logic for PDF (Snapshot or Live)
+                    // Note: Ideally we store 'closing_balance' in ledger. 
+                    // Here we will fetch current party balance to show "Current Outstanding"
+                    const { data: party } = await supabase.from('var_parties').select('opening_balance').eq('id', selectedParty.id).single();
+                    const currentOutstanding = party ? parseFloat(party.opening_balance) : 0;
+
                     const { jsPDF } = window.jspdf; 
                     const doc = new jsPDF(); 
                     
-                    // --- HEADER: LOGO AND ADDRESS ---
-                    // PLACEHOLDER: You need to replace this string with your real Base64 image
-                    const logoBase64 = ""; // PASTE YOUR BASE64 STRING HERE 
-                    if(logoBase64) doc.addImage(logoBase64, 'JPEG', 14, 10, 50, 20); // x,y,w,h
-                    else {
-                        doc.setFontSize(22); 
-                        doc.setTextColor(isSale ? 30 : 200, isSale ? 58 : 80, isSale ? 138 : 30); 
-                        doc.text("VAR FISHERIES", 14, 20); 
-                    }
-
-                    // ADDRESS (Top Right)
-                    doc.setFontSize(10); 
-                    doc.setTextColor(100); 
-                    const addressLines = [
-                        "Near TNR Hall, Buchireddypalem",
-                        "Nellore District, Andhra Pradesh",
-                        "Phone: 9491500266",
-                        "       9160845975"
-                    ];
+                    // HEADER LOGO & ADDRESS
+                    const logoBase64 = ""; // PASTE BASE64 STRING HERE
+                    if(logoBase64) doc.addImage(logoBase64, 'JPEG', 14, 10, 50, 20); 
+                    else { doc.setFontSize(22); doc.setTextColor(isSale ? 30 : 200, isSale ? 58 : 80, isSale ? 138 : 30); doc.text("VAR FISHERIES", 14, 20); }
+                    doc.setFontSize(10); doc.setTextColor(100); 
+                    const addressLines = ["Near TNR Hall, Buchireddypalem", "Nellore District, Andhra Pradesh", "Phone: 9491500266", "       9160845975"];
                     doc.text(addressLines, 196, 15, { align: 'right' }); 
-
-                    doc.setDrawColor(200); 
-                    doc.line(14, 35, 196, 35); 
+                    doc.setDrawColor(200); doc.line(14, 35, 196, 35); 
                     
                     if (isPayment) { 
                         doc.setFontSize(16); doc.setTextColor(0); doc.text("PAYMENT RECEIPT", 14, 45); 
@@ -302,8 +304,38 @@
                         doc.setFontSize(14); doc.setTextColor(0); doc.text(isSale ? "TAX INVOICE" : "PURCHASE BILL", 14, 45); 
                         doc.setFontSize(10); doc.text(`Party: ${selectedParty.name}`, 14, 52); doc.text(`Date: ${item.transaction_date}`, 14, 57); doc.text(`Desc: ${item.description}`, 14, 62); 
                         const tableRows = items ? items.map(i => [ i.item_name, i.boxes, i.std_weight, i.loose_kg, parseFloat(i.gross_weight).toFixed(1), i.disc_percent + '%', parseFloat(i.total_weight).toFixed(1), parseFloat(i.price_per_kg).toFixed(2), parseFloat(i.line_total).toLocaleString() ]) : []; 
-                        if(tableRows.length) doc.autoTable({ startY: 70, head: [['Item', 'Box', 'Std', 'Loose', 'Gross', 'Disc', 'Net', 'Price', 'Total']], body: tableRows, theme: 'grid', headStyles: { fillColor: isSale ? [30, 58, 138] : [194, 65, 12] } }); 
-                        doc.text(`Total: ${item.bill_amount}`, 14, doc.lastAutoTable?.finalY + 10 || 50); 
+                        
+                        doc.autoTable({ 
+                            startY: 70, 
+                            head: [['Item', 'Box', 'Std', 'Loose', 'Gross', 'Disc', 'Net', 'Price', 'Total']], 
+                            body: tableRows, 
+                            theme: 'grid', 
+                            headStyles: { fillColor: isSale ? [30, 58, 138] : [194, 65, 12] },
+                            columnStyles: { 8: { halign: 'right', fontStyle: 'bold' } }
+                        }); 
+                        
+                        // --- BOTTOM RIGHT TOTALS ---
+                        let finalY = doc.lastAutoTable.finalY + 10;
+                        if (finalY > 250) { doc.addPage(); finalY = 20; }
+                        
+                        const rightX = 196;
+                        doc.setFontSize(10);
+                        doc.text(`Sub Total:   ${parseFloat(item.bill_amount) + parseFloat(item.discount)}`, rightX, finalY, { align: 'right' });
+                        if(item.discount > 0) {
+                            finalY += 5;
+                            doc.text(`Discount: - ${item.discount}`, rightX, finalY, { align: 'right' });
+                        }
+                        finalY += 7;
+                        doc.setFontSize(12); doc.setFont(undefined, 'bold');
+                        doc.text(`Grand Total:   ${parseFloat(item.bill_amount).toLocaleString()}`, rightX, finalY, { align: 'right' });
+                        
+                        // Prev Balance & Net Calculation
+                        // Logic: Net Outstanding = Current Balance (which includes this bill). 
+                        // So Previous Balance = Current Balance - (Bill Effect).
+                        // To simplify for PDF "Statement" feel:
+                        finalY += 10;
+                        doc.setFontSize(10); doc.setFont(undefined, 'normal');
+                        doc.text(`Net Payable Balance:   Rs. ${currentOutstanding.toLocaleString()}`, rightX, finalY, { align: 'right' });
                     } 
                     doc.save('doc.pdf'); 
                 } catch (e) { alert(e.message); } finally { setPdfLoading(null); } 

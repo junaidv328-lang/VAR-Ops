@@ -3,15 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>VAR Fisheries | Integrated Finance</title>
+    <title>VAR Fisheries | Mobile Finance</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #f3f4f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; -webkit-tap-highlight-color: transparent; }
         .loader { border: 3px solid #f3f3f3; border-top: 3px solid #1e3a8a; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .modal-overlay { background-color: rgba(0,0,0,0.5); position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 1rem; }
-        .login-bg { background: linear-gradient(135deg, #1e3a8a 0%, #172554 100%); }
+        .modal-overlay { background-color: rgba(0,0,0,0.8); position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+        .login-bg { background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); }
+        /* Hide scrollbar for clean mobile UI */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
@@ -37,7 +38,7 @@
     <script type="text/babel" data-type="module">
         import React, { useState, useEffect, useMemo } from 'react';
         import { createRoot } from 'react-dom/client';
-        import { Wallet, FileText, Users, Save, ArrowRight, CheckCircle, Plus, ArrowLeft, Download, Pencil, Trash2, TrendingUp, TrendingDown, X, Banknote, Coins, Building2, Truck, Snowflake, Hammer, MoreHorizontal, Lock, Menu } from 'lucide-react';
+        import { Wallet, FileText, Users, Save, ArrowRight, CheckCircle, Plus, ArrowLeft, Download, Pencil, Trash2, TrendingUp, TrendingDown, X, Banknote, Coins, Building2, Truck, Snowflake, Hammer, MoreHorizontal, Lock, LogOut, Calendar } from 'lucide-react';
         import { createClient } from '@supabase/supabase-js';
 
         // --- CONFIGURATION ---
@@ -45,31 +46,20 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndsbnRudHRzbGlheWdycWhmYXpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4MzMzNjIsImV4cCI6MjA4MDQwOTM2Mn0.imoQLKoDxDVOmKbLOHVDsRxX5jRORMV5cYt2sFf9wiI';
         const supabase = createClient(supabaseUrl, supabaseKey);
 
-        // --- LOGIN COMPONENT ---
+        // --- LOGIN ---
         const LoginScreen = ({ onLogin }) => {
-            const [uid, setUid] = useState('');
-            const [pass, setPass] = useState('');
-            const [error, setError] = useState('');
-
-            const handleLogin = (e) => {
-                e.preventDefault();
-                if (uid === 'junaidva' && pass === 'Abida@123') onLogin();
-                else setError('Invalid Credentials');
-            };
-
+            const [uid, setUid] = useState(''); const [pass, setPass] = useState(''); const [error, setError] = useState('');
+            const handleLogin = (e) => { e.preventDefault(); if (uid === 'junaidva' && pass === 'Abida@123') onLogin(); else setError('Invalid Credentials'); };
             return (
-                <div className="min-h-screen flex items-center justify-center login-bg p-4">
-                    <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md">
-                        <div className="text-center mb-8">
-                            <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-900"><Lock size={32} /></div>
-                            <h1 className="text-2xl font-black text-slate-800">VAR FISHERIES</h1>
-                            <p className="text-gray-500 text-sm">Authorized Access Only</p>
-                        </div>
+                <div className="min-h-screen flex items-center justify-center login-bg p-6">
+                    <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm text-center">
+                        <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-900"><Lock size={32} /></div>
+                        <h1 className="text-2xl font-black text-slate-900 mb-6">VAR FISHERIES</h1>
                         <form onSubmit={handleLogin} className="space-y-4">
-                            <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">User ID</label><input type="text" className="w-full border-2 p-3 rounded-lg font-bold" value={uid} onChange={e => setUid(e.target.value)} autoFocus /></div>
-                            <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Password</label><input type="password" className="w-full border-2 p-3 rounded-lg font-bold" value={pass} onChange={e => setPass(e.target.value)} /></div>
-                            {error && <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg font-bold text-center">{error}</div>}
-                            <button type="submit" className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold shadow-lg">Login</button>
+                            <input type="text" className="w-full border-2 border-gray-200 p-3 rounded-xl font-bold outline-none focus:border-blue-600" value={uid} onChange={e => setUid(e.target.value)} placeholder="User ID" autoFocus />
+                            <input type="password" className="w-full border-2 border-gray-200 p-3 rounded-xl font-bold outline-none focus:border-blue-600" value={pass} onChange={e => setPass(e.target.value)} placeholder="Password" />
+                            {error && <div className="text-red-600 font-bold bg-red-50 p-2 rounded-lg border border-red-100 text-sm">{error}</div>}
+                            <button type="submit" className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold shadow-lg active:scale-95 transition-transform">Login</button>
                         </form>
                     </div>
                 </div>
@@ -98,7 +88,7 @@
         const PaymentModal = ({ party, banks, onClose, onSuccess }) => {
             const [amount, setAmount] = useState(''); const [type, setType] = useState('Received'); const [date, setDate] = useState(new Date().toISOString().split('T')[0]); const [note, setNote] = useState(''); const [selectedBankId, setSelectedBankId] = useState(banks[0]?.id || ''); const [loading, setLoading] = useState(false);
             const handleSubmit = async () => { if(!amount || !selectedBankId) return alert("Fill all fields"); setLoading(true); try { const payAmt = parseFloat(amount); const desc = note ? `${type}: ${note}` : `Payment ${type}`; await supabase.from('var_ledger').insert([{ party_id: party.id, trip_id: null, transaction_date: date, description: desc, bill_amount: 0, paid_amount: payAmt, discount: 0, balance_after: 0 }]); const { data: p } = await supabase.from('var_parties').select('opening_balance').eq('id', party.id).single(); const newPartyBal = type === 'Received' ? parseFloat(p.opening_balance) - payAmt : parseFloat(p.opening_balance) + payAmt; await supabase.from('var_parties').update({ opening_balance: newPartyBal }).eq('id', party.id); const { data: b } = await supabase.from('var_parties').select('opening_balance').eq('id', selectedBankId).single(); const newBankBal = type === 'Received' ? parseFloat(b.opening_balance) + payAmt : parseFloat(b.opening_balance) - payAmt; await supabase.from('var_parties').update({ opening_balance: newBankBal }).eq('id', selectedBankId); onSuccess(); onClose(); } catch(e) { alert(e.message); } finally { setLoading(false); } };
-            return (<div className="modal-overlay"><div className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 space-y-4"><div className="flex justify-between items-center text-slate-900"><h3 className="font-bold text-lg">Record Payment</h3><button onClick={onClose}><X size={24}/></button></div><div className="text-center font-bold text-gray-500 mb-2">{party.name}</div><div className="flex bg-gray-100 p-1 rounded-lg"><button onClick={() => setType('Received')} className={`flex-1 py-2 rounded-md font-bold text-sm ${type === 'Received' ? 'bg-green-100 text-green-700' : 'text-gray-500'}`}>Received</button><button onClick={() => setType('Given')} className={`flex-1 py-2 rounded-md font-bold text-sm ${type === 'Given' ? 'bg-red-100 text-red-700' : 'text-gray-500'}`}>Given</button></div><input type="number" className="w-full border-2 p-3 rounded-lg text-2xl text-center font-bold" value={amount} onChange={e => setAmount(e.target.value)} placeholder="₹" /><select className="w-full border-2 p-3 rounded-lg font-bold" value={selectedBankId} onChange={e => setSelectedBankId(e.target.value)}>{banks.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select><input type="text" className="w-full border-2 p-3 rounded-lg font-bold" value={note} onChange={e => setNote(e.target.value)} placeholder="Note / Reference" /><button onClick={handleSubmit} disabled={loading} className="w-full bg-slate-900 text-white py-3 rounded-lg font-bold">{loading ? "Saving..." : "Save Payment"}</button></div></div>);
+            return (<div className="modal-overlay"><div className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 space-y-4"><div className="flex justify-between items-center text-slate-900"><h3 className="font-bold text-lg">Record Payment</h3><button onClick={onClose}><X size={24}/></button></div><div className="text-center font-bold text-gray-500 mb-2">{party.name}</div><div className="flex bg-gray-100 p-1 rounded-lg"><button onClick={() => setType('Received')} className={`flex-1 py-3 rounded-md font-bold text-sm ${type === 'Received' ? 'bg-green-100 text-green-700' : 'text-gray-500'}`}>Received</button><button onClick={() => setType('Given')} className={`flex-1 py-3 rounded-md font-bold text-sm ${type === 'Given' ? 'bg-red-100 text-red-700' : 'text-gray-500'}`}>Given</button></div><div className="relative"><label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Payment Date</label><div className="flex items-center border-2 rounded-lg p-2 bg-gray-50"><Calendar size={18} className="text-gray-400 mr-2"/><input type="date" className="w-full bg-transparent font-bold outline-none" value={date} onChange={e => setDate(e.target.value)} /></div></div><input type="number" className="w-full border-2 p-3 rounded-lg text-3xl text-center font-bold" value={amount} onChange={e => setAmount(e.target.value)} placeholder="₹" /><select className="w-full border-2 p-3 rounded-lg font-bold" value={selectedBankId} onChange={e => setSelectedBankId(e.target.value)}>{banks.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select><input type="text" className="w-full border-2 p-3 rounded-lg font-bold" value={note} onChange={e => setNote(e.target.value)} placeholder="Note / Reference" /><button onClick={handleSubmit} disabled={loading} className="w-full bg-slate-900 text-white py-3 rounded-lg font-bold hover:bg-slate-800">{loading ? "Saving..." : "Save Payment"}</button></div></div>);
         };
 
         // --- MAIN APP ---
@@ -149,7 +139,9 @@
             if (!isLoggedIn) return <LoginScreen onLogin={() => setIsLoggedIn(true)} />;
 
             return (
-                <div className="flex h-screen w-screen overflow-hidden text-slate-800 bg-gray-50 flex-col md:flex-row">
+                <div className="flex h-screen w-screen overflow-hidden text-slate-800 bg-gray-100 flex-col md:flex-row">
+                    
+                    {/* MOBILE BOTTOM NAV */}
                     <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around p-3 z-40 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
                         <NavIcon icon={<Wallet size={24}/>} label="Home" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
                         <NavIcon icon={<FileText size={24}/>} label="Bills" active={activeTab === 'billing'} onClick={() => setActiveTab('billing')} badge={pendingTrips.length} />
@@ -157,6 +149,8 @@
                         <NavIcon icon={<TrendingDown size={24}/>} label="Exp" active={activeTab === 'expenses'} onClick={() => setActiveTab('expenses')} />
                         <NavIcon icon={<Building2 size={24}/>} label="Bank" active={activeTab === 'banks'} onClick={() => setActiveTab('banks')} />
                     </div>
+
+                    {/* DESKTOP SIDEBAR */}
                     <div className="w-64 bg-slate-900 text-white flex-col hidden md:flex shadow-2xl z-10">
                         <div className="p-6 border-b border-slate-800"><div className="font-black text-xl tracking-wider text-blue-400">VAR FISHERIES</div><div className="text-xs text-slate-400 font-medium tracking-widest mt-1">ACCOUNTS MODULE</div></div>
                         <nav className="flex-1 p-4 space-y-2 mt-4">
@@ -166,12 +160,20 @@
                             <NavBtn label="Daily Expenses" icon={<TrendingDown size={20}/>} active={activeTab === 'expenses'} onClick={() => setActiveTab('expenses')} />
                             <NavBtn label="Bank Accounts" icon={<Building2 size={20}/>} active={activeTab === 'banks'} onClick={() => setActiveTab('banks')} />
                         </nav>
+                        <div className="p-6 border-t border-slate-800">
+                            <button onClick={() => setIsLoggedIn(false)} className="flex items-center gap-3 text-slate-400 hover:text-white transition-colors w-full">
+                                <LogOut size={20}/> <span>Logout</span>
+                            </button>
+                        </div>
                     </div>
+
+                    {/* MAIN CONTENT AREA */}
                     <div className="flex-1 bg-gray-50 overflow-auto relative pb-20 md:pb-0">
                         <div className="md:hidden bg-slate-900 text-white p-4 flex justify-between items-center sticky top-0 z-20 shadow-md">
                             <span className="font-bold text-lg">VAR Fisheries</span>
                             <div className="bg-slate-800 p-1.5 rounded-full"><Lock size={16}/></div>
                         </div>
+
                         {activeTab === 'dashboard' && <Dashboard stats={stats} banks={banks} switchToBilling={() => setActiveTab('billing')} onAddCash={handleAddCash} />}
                         {activeTab === 'billing' && ((editingBill || selectedTrip) ? <InvoiceGenerator trip={selectedTrip} existingBill={editingBill} banks={banks} onBack={() => { setSelectedTrip(null); setEditingBill(null); fetchData(); }} /> : <PendingList trips={pendingTrips} onSelect={setSelectedTrip} />)}
                         {activeTab === 'parties' && <PartyManager banks={banks} onEditBill={(bill) => { setEditingBill(bill); setSelectedTrip(null); setActiveTab('billing'); }} onRefresh={fetchData} />}
@@ -226,7 +228,7 @@
             const [expenses, setExpenses] = useState([]); const [showAdd, setShowAdd] = useState(false); const [filter, setFilter] = useState('All');
             useEffect(() => { fetchExpenses(); }, []);
             const fetchExpenses = async () => { const { data } = await supabase.from('var_expenses').select(`*, var_parties(name)`).order('expense_date', { ascending: false }); setExpenses(data || []); };
-            const handleDelete = async (exp) => { if(!confirm("Delete?")) return; try { const { data: b } = await supabase.from('var_parties').select('opening_balance').eq('id', exp.payment_account_id).single(); if(b) { const newBal = parseFloat(b.opening_balance) + parseFloat(exp.amount); await supabase.from('var_parties').update({ opening_balance: newBal }).eq('id', exp.payment_account_id); } await supabase.from('var_expenses').delete().eq('id', exp.id); fetchExpenses(); onRefresh(); } catch(e) { alert(e.message); } };
+            const handleDelete = async (exp) => { if(!confirm("Delete? Money refunded.")) return; try { const { data: b } = await supabase.from('var_parties').select('opening_balance').eq('id', exp.payment_account_id).single(); if(b) { const newBal = parseFloat(b.opening_balance) + parseFloat(exp.amount); await supabase.from('var_parties').update({ opening_balance: newBal }).eq('id', exp.payment_account_id); } await supabase.from('var_expenses').delete().eq('id', exp.id); fetchExpenses(); onRefresh(); } catch(e) { alert(e.message); } };
             const filtered = filter === 'All' ? expenses : expenses.filter(e => e.category === filter);
             const getIcon = (cat) => { if(cat === 'Ice') return <Snowflake className="text-blue-400"/>; if(cat === 'Transportation') return <Truck className="text-orange-500"/>; if(cat === 'Labour') return <Hammer className="text-yellow-600"/>; return <MoreHorizontal className="text-gray-400"/>; };
             return (<div className="p-4 md:p-10 max-w-5xl mx-auto h-full flex flex-col">{showAdd && <AddExpenseModal banks={banks} onClose={() => setShowAdd(false)} onSuccess={() => { fetchExpenses(); onRefresh(); }} />}<div className="flex justify-between items-center mb-6"><div><h2 className="text-2xl font-black text-slate-800">Expenses</h2></div><button onClick={() => setShowAdd(true)} className="bg-red-900 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2"><Plus size={18}/> Add</button></div><div className="flex gap-2 mb-6 overflow-x-auto pb-2 no-scrollbar">{['All', 'Ice', 'Transportation', 'Labour', 'Miscellaneous'].map(f => (<button key={f} onClick={() => setFilter(f)} className={`px-4 py-1.5 rounded-full text-sm font-bold whitespace-nowrap ${filter === f ? 'bg-slate-800 text-white' : 'bg-white text-slate-500 border'}`}>{f}</button>))}</div><div className="flex-1 overflow-auto space-y-3 pb-20">{filtered.map(e => (<div key={e.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between"><div className="flex items-center gap-4"><div className="bg-slate-50 p-3 rounded-full">{getIcon(e.category)}</div><div><div className="font-bold text-slate-800">{e.category}</div><div className="text-xs text-gray-500">{e.expense_date} • {e.description || '-'}</div><div className="text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded inline-block mt-1">Pd: {e.var_parties?.name || 'Unknown'}</div></div></div><div className="flex items-center gap-4"><div className="text-xl font-black text-slate-800">₹ {e.amount.toLocaleString()}</div><button onClick={() => handleDelete(e)} className="text-gray-300 hover:text-red-500"><Trash2 size={18}/></button></div></div>))}</div></div>);
@@ -239,36 +241,75 @@
         };
 
         const InvoiceGenerator = ({ trip, existingBill, banks, onBack }) => {
-            const [rows, setRows] = useState([]); const [partyList, setPartyList] = useState([]); const [selectedPartyId, setSelectedPartyId] = useState(''); const [loading, setLoading] = useState(false); const [showAddParty, setShowAddParty] = useState(false); const [discount, setDiscount] = useState(0); const [amountReceived, setAmountReceived] = useState(0); const [selectedBankId, setSelectedBankId] = useState(banks[0]?.id || ''); const [oldBalance, setOldBalance] = useState(0); const isEditMode = !!existingBill; const opMode = isEditMode ? (existingBill.bill_amount > 0 ? 'Sales' : 'Purchase') : (trip.operationMode || 'Sales'); const isSale = ['Sale', 'Sales', 'sale', 'sales'].includes(opMode);
+            const [rows, setRows] = useState([]); const [partyList, setPartyList] = useState([]); const [selectedPartyId, setSelectedPartyId] = useState(''); const [loading, setLoading] = useState(false); const [showAddParty, setShowAddParty] = useState(false); const [discount, setDiscount] = useState(0); const [amountReceived, setAmountReceived] = useState(0); const [selectedBankId, setSelectedBankId] = useState(banks[0]?.id || ''); const [oldBalance, setOldBalance] = useState(0); 
+            const isEditMode = !!existingBill; 
+            const opMode = isEditMode ? (existingBill.bill_amount > 0 ? 'Sales' : 'Purchase') : (trip.operationMode || 'Sales'); 
+            const isSale = ['Sale', 'Sales', 'sale', 'sales'].includes(opMode);
+
             useEffect(() => { fetchParties(); if (isEditMode) loadExistingBill(); else if (trip) loadFromTrip(); }, [trip, existingBill]);
             const fetchParties = async () => { const { data } = await supabase.from('var_parties').select('*').neq('type', 'Bank').order('name'); setPartyList(data || []); };
+            
+            // --- LIVE BALANCE FETCH ---
             useEffect(() => { if(selectedPartyId) { const p = partyList.find(x => x.id === selectedPartyId); if(p) setOldBalance(parseFloat(p.opening_balance || 0)); } }, [selectedPartyId, partyList]);
+
             const loadFromTrip = () => { const mapper = (i, boxes, loose) => ({ name: i.name || i, boxes: Number(boxes) || 0, loose: Number(loose) || 0, stdWeight: 35, price: 0, discPercent: 0, manualRounded: null }); let initialItems = []; if (trip.detailedItems) initialItems = trip.detailedItems.map(i => mapper(i, i.boxes, i.looseKg)); else if (trip.summary) initialItems = Object.entries(trip.summary).filter(([k]) => !k.startsWith('__')).map(([k, v]) => mapper(k, v, 0)); setRows(initialItems); if (partyList.length > 0 && trip.customerName) { const match = partyList.find(p => p.name.toLowerCase() === trip.customerName.toLowerCase()); if (match) setSelectedPartyId(match.id); } };
             const loadExistingBill = async () => { setSelectedPartyId(existingBill.party_id); setDiscount(existingBill.discount); setAmountReceived(existingBill.paid_amount); const { data: items } = await supabase.from('var_invoice_items').select('*').eq('ledger_id', existingBill.id); if (items) { const loadedRows = items.map(i => ({ name: i.item_name, boxes: Number(i.boxes), loose: Number(i.loose_kg), stdWeight: Number(i.std_weight), price: Number(i.price_per_kg), discPercent: Number(i.disc_percent), manualRounded: Number(i.total_weight) })); setRows(loadedRows); } };
             const getSmartRounded = (val) => { const weight = parseFloat(val || 0); const decimal = weight - Math.floor(weight); const d = Math.round(decimal * 10) / 10; if (d < 0.5) return Math.floor(weight); if (d > 0.5) return Math.ceil(weight); return weight; };
             const calculatedRows = useMemo(() => { return rows.map(row => { const grossWeight = (row.boxes * parseFloat(row.stdWeight || 0)) + row.loose; const disc = parseFloat(row.discPercent || 0); const netWeight = grossWeight - (grossWeight * (disc / 100)); const finalWeight = row.manualRounded !== null ? parseFloat(row.manualRounded) : getSmartRounded(netWeight); const total = finalWeight * parseFloat(row.price || 0); return { ...row, grossWeight, netWeight, finalWeight, total }; }); }, [rows]);
             const subTotal = calculatedRows.reduce((sum, r) => sum + r.total, 0); const grandTotal = subTotal - parseFloat(discount || 0);
+            const updateRow = (index, field, value) => { const newRows = [...rows]; newRows[index][field] = value; if (['boxes', 'stdWeight', 'loose', 'discPercent'].includes(field)) newRows[index]['manualRounded'] = null; setRows(newRows); };
             
-            // --- NET BALANCE CALCULATION ---
-            const finalClosingBalance = useMemo(() => {
-                // Sale: Adds to debt (Positive logic). Purchase: Subtracts (Negative logic).
-                if(isSale) return oldBalance + grandTotal - parseFloat(amountReceived||0);
-                else return oldBalance - grandTotal + parseFloat(amountReceived||0);
+            // --- NET PAYABLE CALCULATION ---
+            const netPayable = useMemo(() => {
+                const billEffect = grandTotal - parseFloat(amountReceived||0);
+                if(isSale) return oldBalance + billEffect; // Sale increases Debt
+                else return oldBalance - billEffect; // Purchase reduces Debt (adds to Credit)
             }, [oldBalance, grandTotal, amountReceived, isSale]);
 
-            const updateRow = (index, field, value) => { const newRows = [...rows]; newRows[index][field] = value; if (['boxes', 'stdWeight', 'loose', 'discPercent'].includes(field)) newRows[index]['manualRounded'] = null; setRows(newRows); };
             const handleSave = async () => { if (!selectedPartyId) return alert("Select Party"); if (grandTotal <= 0) return alert("Total is 0"); setLoading(true); try { const payAmt = parseFloat(amountReceived || 0); const { data: party } = await supabase.from('var_parties').select('opening_balance').eq('id', selectedPartyId).single(); let currentBal = parseFloat(party.opening_balance || 0); let balanceCorrection = 0; if (isEditMode) { const oldNet = existingBill.bill_amount - existingBill.paid_amount; if(isSale) balanceCorrection -= oldNet; else balanceCorrection += oldNet; } const newNet = grandTotal - payAmt; if(isSale) balanceCorrection += newNet; else balanceCorrection -= newNet; await supabase.from('var_parties').update({ opening_balance: currentBal + balanceCorrection }).eq('id', selectedPartyId); if(payAmt > 0 && selectedBankId) { const { data: b } = await supabase.from('var_parties').select('opening_balance').eq('id', selectedBankId).single(); let bBal = parseFloat(b.opening_balance || 0); if(isSale) bBal += payAmt; else bBal -= payAmt; await supabase.from('var_parties').update({ opening_balance: bBal }).eq('id', selectedBankId); } let ledgerId = existingBill?.id; const desc = isEditMode ? existingBill.description : `Bill Ref #${trip.referenceId} (${isSale ? 'Sale' : 'Purchase'})`; if (isEditMode) { await supabase.from('var_ledger').update({ bill_amount: grandTotal, paid_amount: payAmt, discount, description: desc }).eq('id', ledgerId); await supabase.from('var_invoice_items').delete().eq('ledger_id', ledgerId); } else { const { data: newEntry } = await supabase.from('var_ledger').insert([{ party_id: selectedPartyId, trip_id: trip.id, transaction_date: new Date(), description: desc, bill_amount: grandTotal, paid_amount: payAmt, discount, balance_after: 0 }]).select().single(); ledgerId = newEntry.id; } const lineItems = calculatedRows.map(r => ({ ledger_id: ledgerId, item_name: r.name, boxes: r.boxes, loose_kg: r.loose, std_weight: r.stdWeight, price_per_kg: r.price, disc_percent: r.discPercent, gross_weight: r.grossWeight, total_weight: r.finalWeight, line_total: r.total })); await supabase.from('var_invoice_items').insert(lineItems); alert("Saved!"); onBack(); } catch (e) { alert(e.message); } finally { setLoading(false); } };
-            return (<div className="flex flex-col h-full bg-white">{showAddParty && <AddPartyModal onClose={() => setShowAddParty(false)} onSuccess={(newParty) => { setPartyList([...partyList, newParty]); setSelectedPartyId(newParty.id); }} />}<div className="flex items-center gap-4 px-6 py-4 border-b bg-white sticky top-0 z-10"><button onClick={onBack} className="p-2 hover:bg-gray-100 rounded-full text-slate-500"><ArrowLeft size={20}/></button><div><h2 className="text-xl font-black text-slate-800">{isEditMode ? "Edit" : "Invoice"}</h2></div><div className="ml-auto flex items-center gap-2">{!isEditMode && (<><select className="border-2 border-gray-200 p-2 rounded-lg font-bold text-sm max-w-[150px]" value={selectedPartyId} onChange={e => setSelectedPartyId(e.target.value)}><option value="">Party</option>{partyList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select><button onClick={() => setShowAddParty(true)} className="bg-blue-600 text-white p-2 rounded-lg"><Plus size={20}/></button></>)}</div></div><div className="flex-1 overflow-auto p-4"><table className="w-full text-sm text-left border-collapse"><thead><tr className="text-gray-400 border-b text-xs uppercase"><th className="p-2">Item</th><th className="p-2 text-center">Box</th><th className="p-2 text-center">Wt</th><th className="p-2 text-center">Net</th><th className="p-2 text-center">Rd</th><th className="p-2 text-right">Price</th><th className="p-2 text-right">Total</th></tr></thead><tbody className="divide-y">{calculatedRows.map((row, idx) => (<tr key={idx}><td className="p-2 font-bold">{row.name}</td><td className="p-2 text-center">{row.boxes}</td><td className="p-2"><input type="number" className="bg-gray-50 w-full text-center rounded" value={row.stdWeight} onChange={(e) => updateRow(idx, 'stdWeight', e.target.value)} /></td><td className="p-2 text-center">{row.netWeight.toFixed(1)}</td><td className="p-2"><input type="number" className="w-full text-center font-bold text-blue-900 border rounded" value={row.finalWeight} onChange={(e) => updateRow(idx, 'manualRounded', e.target.value)} /></td><td className="p-2"><input type="number" className="w-full text-right border rounded" value={row.price} onChange={(e) => updateRow(idx, 'price', e.target.value)} /></td><td className="p-2 text-right font-black">{row.total.toLocaleString()}</td></tr>))}</tbody></table></div><div className="border-t p-4 space-y-2 bg-gray-50"><div className="flex justify-between font-bold text-gray-500 text-xs"><span>Sub Total</span><span>₹{subTotal.toLocaleString()}</span></div><div className="flex justify-between items-center text-xs text-gray-500"><span>Discount</span><input type="number" className="w-20 text-right border-b bg-transparent" value={discount} onChange={e => setDiscount(e.target.value)} /></div><div className="flex justify-between items-center text-xl font-black border-t pt-2"><span>Grand Total</span><span>₹{grandTotal.toLocaleString()}</span></div><div className="flex justify-between text-xs text-blue-600 font-bold"><span>Prev. Balance</span><span>₹{oldBalance.toLocaleString()}</span></div><div className="flex justify-between text-sm text-slate-800 font-black border-t pt-1"><span>Net Payable</span><span>₹{finalClosingBalance.toLocaleString()}</span></div><div className="pt-2"><div className="flex gap-2"><input type="number" className="flex-1 border p-2 rounded font-bold" value={amountReceived} onChange={e => setAmountReceived(e.target.value)} placeholder="Paid" /><select className="border p-2 rounded w-1/3" value={selectedBankId} onChange={e => setSelectedBankId(e.target.value)}>{banks.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select></div></div><button onClick={handleSave} disabled={loading} className="w-full bg-blue-900 text-white py-3 rounded-lg font-bold shadow-lg mt-2">{loading ? "Saving..." : "Save"}</button></div></div>);
+            
+            return (<div className="flex flex-col h-full bg-white shadow-xl m-2 rounded-xl overflow-hidden">{showAddParty && <AddPartyModal onClose={() => setShowAddParty(false)} onSuccess={(newParty) => { setPartyList([...partyList, newParty]); setSelectedPartyId(newParty.id); }} />}<div className="flex items-center gap-4 px-4 py-4 border-b bg-white sticky top-0 z-10"><button onClick={onBack} className="p-2 hover:bg-gray-100 rounded-full text-slate-500"><ArrowLeft size={24}/></button><div><h2 className="text-xl font-black text-slate-800">{isEditMode ? "Edit Invoice" : "Generate Invoice"}</h2><div className="text-xs text-gray-500 font-mono mt-1 flex items-center gap-2"><span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${isSale ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>{isSale ? 'SALE' : 'PURCHASE'}</span>{isEditMode ? `Editing` : `Ref: ${trip.referenceId}`}</div></div><div className="ml-auto flex items-center gap-2">{!isEditMode && (<><select className="border-2 border-gray-200 p-2 rounded-lg font-bold text-sm max-w-[120px]" value={selectedPartyId} onChange={e => setSelectedPartyId(e.target.value)}><option value="">Party</option>{partyList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select><button onClick={() => setShowAddParty(true)} className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 shadow-md transition-all"><Plus size={20}/></button></>)}{isEditMode && <div className="text-xs font-bold bg-yellow-100 text-yellow-800 px-3 py-1 rounded-lg">Edit Mode</div>}</div></div>
+            
+            {/* SCROLLABLE TABLE CONTAINER FOR MOBILE */}
+            <div className="flex-1 overflow-auto p-4">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse min-w-[800px]">
+                        <thead><tr className="text-gray-400 border-b-2 border-gray-100 text-xs uppercase tracking-wider"><th className="p-3 font-bold">Fish Name</th><th className="p-3 text-center">Boxes</th><th className="p-3 text-center w-20">Std Wt</th><th className="p-3 text-center">Loose</th><th className="p-3 text-right bg-gray-50">Net Kg</th><th className="p-3 text-center w-16 text-orange-600">Disc%</th><th className="p-3 text-right font-black text-blue-900 bg-blue-50 w-28">Roundoff</th><th className="p-3 text-right w-28">Price</th><th className="p-3 text-right">Total</th></tr></thead>
+                        <tbody className="divide-y divide-gray-50 text-sm">{calculatedRows.map((row, idx) => (<tr key={idx} className="hover:bg-blue-50 transition-colors group"><td className="p-3 font-bold text-slate-700">{row.name}</td><td className="p-3 text-center text-gray-600">{row.boxes}</td><td className="p-3"><input type="number" className="bg-gray-50 border-gray-200 rounded-lg px-2 py-2 w-full text-center font-bold focus:bg-white outline-none focus:ring-2 focus:ring-blue-500" value={row.stdWeight} onChange={(e) => updateRow(idx, 'stdWeight', e.target.value)} /></td><td className="p-3 text-center text-gray-500">{row.loose > 0 ? row.loose : '-'}</td><td className="p-3 text-right font-mono text-gray-400 bg-gray-50">{row.netWeight.toLocaleString(undefined, {maximumFractionDigits: 1})}</td><td className="p-3"><input type="number" className="border border-orange-200 rounded-lg px-2 py-2 w-full text-center font-bold text-orange-600 focus:ring-2 focus:ring-orange-500 outline-none" value={row.discPercent} onChange={(e) => updateRow(idx, 'discPercent', e.target.value)} /></td><td className="p-3 bg-blue-50 border-l border-r border-blue-100"><input type="number" className="w-full text-right font-black text-blue-900 bg-transparent outline-none focus:border-b-2 focus:border-blue-500 text-lg" value={row.finalWeight} onChange={(e) => updateRow(idx, 'manualRounded', e.target.value)} /></td><td className="p-3"><input type="number" className="border-2 border-gray-200 rounded-lg px-2 py-2 w-full text-right font-bold text-lg focus:border-green-500 outline-none transition-all" value={row.price} onChange={(e) => updateRow(idx, 'price', e.target.value)} /></td><td className="p-3 text-right font-black text-slate-800 text-lg">{row.total.toLocaleString()}</td></tr>))}</tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div className="border-t p-4 space-y-2 bg-gray-50">
+                <div className="flex justify-between font-bold text-gray-500 text-xs"><span>Sub Total</span><span>₹{subTotal.toLocaleString()}</span></div>
+                <div className="flex justify-between items-center text-xs text-gray-500"><span>Discount</span><input type="number" className="w-20 text-right border-b bg-transparent" value={discount} onChange={e => setDiscount(e.target.value)} /></div>
+                <div className="flex justify-between items-center text-xl font-black border-t pt-2"><span>Grand Total</span><span>₹{grandTotal.toLocaleString()}</span></div>
+                
+                {/* --- LIVE BALANCE DISPLAY --- */}
+                <div className="flex justify-between text-xs text-blue-600 font-bold"><span>Prev. Balance</span><span>₹{oldBalance.toLocaleString()}</span></div>
+                <div className={`flex justify-between text-sm font-black border-t pt-1 ${netPayable < 0 ? 'text-red-600' : 'text-green-700'}`}><span>Net Payable</span><span>₹{netPayable.toLocaleString()}</span></div>
+                
+                <div className="pt-2"><div className="flex gap-2"><input type="number" className="flex-1 border p-2 rounded font-bold" value={amountReceived} onChange={e => setAmountReceived(e.target.value)} placeholder="Paid" /><select className="border p-2 rounded w-1/3" value={selectedBankId} onChange={e => setSelectedBankId(e.target.value)}>{banks.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select></div></div>
+                <button onClick={handleSave} disabled={loading} className="w-full bg-blue-900 text-white py-3 rounded-lg font-bold shadow-lg mt-2">{loading ? "Saving..." : "Save"}</button>
+            </div></div>);
         };
 
         const PartyManager = ({ banks, onEditBill, onRefresh }) => {
             const [parties, setParties] = useState([]); const [selectedParty, setSelectedParty] = useState(null); const [ledger, setLedger] = useState([]); const [loading, setLoading] = useState(false); const [pdfLoading, setPdfLoading] = useState(null); const [showAddParty, setShowAddParty] = useState(false); const [showPayModal, setShowPayModal] = useState(false);
             useEffect(() => { fetchParties(); }, []);
             const fetchParties = async () => { const { data } = await supabase.from('var_parties').select('*').neq('type', 'Bank').order('name'); setParties(data || []); };
-            const fetchLedger = async (party) => { setSelectedParty(party); setLoading(true); const { data } = await supabase.from('var_ledger').select('*').eq('party_id', party.id).order('transaction_date', { ascending: false }); setLedger(data || []); setLoading(false); };
-            const handleDeleteParty = async (id) => { if(!confirm("Delete Party?")) return; await supabase.from('var_ledger').delete().eq('party_id', id); await supabase.from('var_parties').delete().eq('id', id); alert("Deleted"); fetchParties(); setSelectedParty(null); };
+            const fetchLedger = async (party) => { 
+                setSelectedParty(party); setLoading(true); 
+                // FETCH FRESH BALANCE
+                const { data: fresh } = await supabase.from('var_parties').select('*').eq('id', party.id).single();
+                setSelectedParty(fresh);
+                
+                const { data } = await supabase.from('var_ledger').select('*').eq('party_id', party.id).order('transaction_date', { ascending: false }); 
+                setLedger(data || []); setLoading(false); 
+            };
+            const handleDeleteParty = async (id) => { if(!confirm("DANGER: Delete party?")) return; await supabase.from('var_ledger').delete().eq('party_id', id); await supabase.from('var_parties').delete().eq('id', id); alert("Deleted"); fetchParties(); setSelectedParty(null); };
             
-            // --- PDF GENERATOR (WITH RIGHT-ALIGNED TOTALS & BALANCE) ---
+            // --- PDF GENERATOR (UPDATED WITH NET PAYABLE & LOGO) ---
             const generateInvoicePDF = async (item) => { 
                 setPdfLoading(item.id); 
                 try { 
@@ -277,22 +318,23 @@
                     if (!isPayment && (!items || items.length === 0)) throw new Error("Ghost bill found."); 
                     const isSale = !item.description.includes('Purchase'); 
                     
-                    // Fetch Current Party Balance Logic for PDF (Snapshot or Live)
-                    // Note: Ideally we store 'closing_balance' in ledger. 
-                    // Here we will fetch current party balance to show "Current Outstanding"
+                    // --- FETCH CURRENT BALANCE FOR PDF ---
                     const { data: party } = await supabase.from('var_parties').select('opening_balance').eq('id', selectedParty.id).single();
                     const currentOutstanding = party ? parseFloat(party.opening_balance) : 0;
 
                     const { jsPDF } = window.jspdf; 
                     const doc = new jsPDF(); 
                     
-                    // HEADER LOGO & ADDRESS
-                    const logoBase64 = ""; // PASTE BASE64 STRING HERE
+                    // HEADER LOGO (PLACEHOLDER)
+                    const logoBase64 = ""; // PASTE YOUR BASE64 STRING HERE
                     if(logoBase64) doc.addImage(logoBase64, 'JPEG', 14, 10, 50, 20); 
                     else { doc.setFontSize(22); doc.setTextColor(isSale ? 30 : 200, isSale ? 58 : 80, isSale ? 138 : 30); doc.text("VAR FISHERIES", 14, 20); }
+                    
+                    // ADDRESS
                     doc.setFontSize(10); doc.setTextColor(100); 
                     const addressLines = ["Near TNR Hall, Buchireddypalem", "Nellore District, Andhra Pradesh", "Phone: 9491500266", "       9160845975"];
                     doc.text(addressLines, 196, 15, { align: 'right' }); 
+                    
                     doc.setDrawColor(200); doc.line(14, 35, 196, 35); 
                     
                     if (isPayment) { 
@@ -303,6 +345,7 @@
                     } else { 
                         doc.setFontSize(14); doc.setTextColor(0); doc.text(isSale ? "TAX INVOICE" : "PURCHASE BILL", 14, 45); 
                         doc.setFontSize(10); doc.text(`Party: ${selectedParty.name}`, 14, 52); doc.text(`Date: ${item.transaction_date}`, 14, 57); doc.text(`Desc: ${item.description}`, 14, 62); 
+                        
                         const tableRows = items ? items.map(i => [ i.item_name, i.boxes, i.std_weight, i.loose_kg, parseFloat(i.gross_weight).toFixed(1), i.disc_percent + '%', parseFloat(i.total_weight).toFixed(1), parseFloat(i.price_per_kg).toFixed(2), parseFloat(i.line_total).toLocaleString() ]) : []; 
                         
                         doc.autoTable({ 
@@ -314,25 +357,19 @@
                             columnStyles: { 8: { halign: 'right', fontStyle: 'bold' } }
                         }); 
                         
-                        // --- BOTTOM RIGHT TOTALS ---
+                        // --- RIGHT ALIGNED TOTALS ---
                         let finalY = doc.lastAutoTable.finalY + 10;
                         if (finalY > 250) { doc.addPage(); finalY = 20; }
                         
                         const rightX = 196;
                         doc.setFontSize(10);
                         doc.text(`Sub Total:   ${parseFloat(item.bill_amount) + parseFloat(item.discount)}`, rightX, finalY, { align: 'right' });
-                        if(item.discount > 0) {
-                            finalY += 5;
-                            doc.text(`Discount: - ${item.discount}`, rightX, finalY, { align: 'right' });
-                        }
+                        if(item.discount > 0) { finalY += 5; doc.text(`Discount: - ${item.discount}`, rightX, finalY, { align: 'right' }); }
+                        
                         finalY += 7;
                         doc.setFontSize(12); doc.setFont(undefined, 'bold');
                         doc.text(`Grand Total:   ${parseFloat(item.bill_amount).toLocaleString()}`, rightX, finalY, { align: 'right' });
                         
-                        // Prev Balance & Net Calculation
-                        // Logic: Net Outstanding = Current Balance (which includes this bill). 
-                        // So Previous Balance = Current Balance - (Bill Effect).
-                        // To simplify for PDF "Statement" feel:
                         finalY += 10;
                         doc.setFontSize(10); doc.setFont(undefined, 'normal');
                         doc.text(`Net Payable Balance:   Rs. ${currentOutstanding.toLocaleString()}`, rightX, finalY, { align: 'right' });
@@ -343,9 +380,68 @@
             
             const handleDelete = async (item) => { if(!confirm("Delete?")) return; const { data: p } = await supabase.from('var_parties').select('opening_balance').eq('id', selectedParty.id).single(); const corr = item.bill_amount - item.paid_amount; const isSale = !item.description.includes('Purchase'); const nb = isSale ? p.opening_balance - corr : p.opening_balance + corr; await supabase.from('var_parties').update({ opening_balance: nb }).eq('id', selectedParty.id); await supabase.from('var_ledger').delete().eq('id', item.id); fetchLedger(selectedParty); onRefresh(); };
             
-            return (<div className="flex h-full flex-col md:flex-row">{showAddParty && <AddPartyModal onClose={() => setShowAddParty(false)} onSuccess={(p) => { setParties([...parties, p]); }} />} {showPayModal && <PaymentModal party={selectedParty} banks={banks} onClose={() => setShowPayModal(false)} onSuccess={() => { fetchLedger(selectedParty); onRefresh(); }} />} 
-            <div className={`w-full md:w-1/3 border-r bg-white flex flex-col ${selectedParty ? 'hidden md:flex' : 'flex'}`}><div className="p-4 border-b flex justify-between items-center"><span className="font-bold">Parties</span><button onClick={() => setShowAddParty(true)}><Plus/></button></div><div className="flex-1 overflow-auto">{parties.map(p => (<div key={p.id} onClick={() => fetchLedger(p)} className="p-4 border-b hover:bg-gray-50 flex justify-between"><span>{p.name}</span><span className={p.opening_balance > 0 ? 'text-green-600' : 'text-red-500'}>{p.opening_balance}</span></div>))}</div></div>
-            <div className={`flex-1 bg-gray-50 flex flex-col ${!selectedParty ? 'hidden md:flex' : 'flex'}`}>{!selectedParty ? <div className="m-auto text-gray-400">Select Party</div> : <div className="flex flex-col h-full"><div className="p-4 bg-white border-b flex justify-between items-center"><button className="md:hidden" onClick={() => setSelectedParty(null)}><ArrowLeft/></button><span className="font-bold">{selectedParty.name}</span><button onClick={() => setShowPayModal(true)} className="bg-slate-900 text-white px-3 py-1 rounded text-sm">Pay</button></div><div className="flex-1 overflow-auto p-4 space-y-3">{ledger.map(i => (<div key={i.id} className="bg-white p-3 rounded shadow flex justify-between items-center"><div><div className="text-xs text-gray-500">{i.transaction_date}</div><div className="font-bold">{i.description}</div><div className="text-xs">Bill: {i.bill_amount} | Paid: {i.paid_amount}</div></div><div className="flex gap-2"><button onClick={() => generateInvoicePDF(i)}><Download size={16}/></button><button onClick={() => handleDelete(i)} className="text-red-500"><Trash2 size={16}/></button></div></div>))}</div></div>}</div></div>);
+            return (<div className="flex h-full flex-col">{showAddParty && <AddPartyModal onClose={() => setShowAddParty(false)} onSuccess={(p) => { setParties([...parties, p]); }} />} {showPayModal && <PaymentModal party={selectedParty} banks={banks} onClose={() => setShowPayModal(false)} onSuccess={() => { fetchLedger(selectedParty); onRefresh(); }} />} 
+            
+            {/* MOBILE LIST VIEW */}
+            {!selectedParty ? (
+                <div className="flex flex-col h-full bg-white">
+                    <div className="p-4 border-b flex justify-between items-center shadow-sm"><span className="font-bold text-xl text-slate-800">Parties</span><button onClick={() => setShowAddParty(true)} className="bg-blue-600 text-white p-2 rounded-full shadow-lg"><Plus size={24}/></button></div>
+                    <div className="flex-1 overflow-auto">
+                        {parties.map(p => (
+                            <div key={p.id} onClick={() => fetchLedger(p)} className="p-4 border-b hover:bg-gray-50 flex justify-between items-center active:bg-blue-50 transition-colors">
+                                <div>
+                                    <div className="font-bold text-lg text-slate-800">{p.name}</div>
+                                    <div className={`text-sm font-bold ${p.opening_balance > 0 ? 'text-green-600' : 'text-red-500'}`}>Bal: ₹ {parseFloat(p.opening_balance).toLocaleString()}</div>
+                                </div>
+                                <button onClick={(e) => { e.stopPropagation(); handleDeleteParty(p.id); }} className="text-gray-300 p-2"><Trash2 size={20}/></button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            ) : (
+                // MOBILE LEDGER VIEW
+                <div className="flex flex-col h-full bg-white relative">
+                    <div className="p-4 bg-white border-b shadow-sm z-10 sticky top-0">
+                        <div className="flex justify-between items-center mb-4">
+                            <button onClick={() => setSelectedParty(null)} className="p-2 hover:bg-gray-100 rounded-full"><ArrowLeft size={24}/></button>
+                            <span className="font-bold text-xl truncate">{selectedParty.name}</span>
+                            <button onClick={() => setShowPayModal(true)} className="bg-slate-900 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-md">Pay</button>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-xs text-gray-500 uppercase font-bold">Current Balance</div>
+                            <div className={`text-3xl font-black ${selectedParty.opening_balance > 0 ? 'text-green-600' : 'text-red-600'}`}>₹ {parseFloat(selectedParty.opening_balance).toLocaleString()}</div>
+                        </div>
+                    </div>
+                    
+                    <div className="flex-1 overflow-auto p-4 space-y-3 pb-24">
+                        {ledger.map(i => (
+                            <div key={i.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                                <div className="flex justify-between items-start mb-2">
+                                    <div>
+                                        <div className="text-xs text-gray-400 font-bold uppercase">{i.transaction_date}</div>
+                                        <div className="font-bold text-lg text-slate-800">{i.description}</div>
+                                    </div>
+                                    <div className="text-right">
+                                        {i.bill_amount > 0 ? <div className="font-black">₹{i.bill_amount.toLocaleString()}</div> : <div className="font-black text-green-600">₹{i.paid_amount.toLocaleString()}</div>}
+                                    </div>
+                                </div>
+                                
+                                <div className="flex justify-end gap-3 mt-3 border-t pt-3">
+                                    {/* EDIT BUTTON */}
+                                    {i.bill_amount > 0 && (
+                                        <button onClick={() => onEditBill(i)} className="bg-yellow-50 text-yellow-600 p-2 rounded-lg" title="Edit">
+                                            <Pencil size={18}/>
+                                        </button>
+                                    )}
+                                    <button onClick={() => generateInvoicePDF(i)} className="bg-blue-50 text-blue-600 p-2 rounded-lg"><Download size={18}/></button>
+                                    <button onClick={() => handleDelete(i)} className="bg-red-50 text-red-600 p-2 rounded-lg"><Trash2 size={18}/></button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+            </div>);
         };
 
         const root = createRoot(document.getElementById('root'));

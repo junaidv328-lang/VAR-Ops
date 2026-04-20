@@ -145,7 +145,8 @@ body{background:var(--bg);color:var(--txt);font-family:var(--f);font-size:12.5px
 .fi::placeholder{color:var(--muted2);}
 textarea.fi{min-height:65px;resize:vertical;}
 .fr{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
-@media(max-width:560px){.fr{grid-template-columns:1fr;}}
+.field-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;}
+@media(max-width:560px){.fr,.field-row-3{grid-template-columns:1fr;}}
 
 /* step 2 – one-question-at-a-time */
 .q1{background:var(--s2);border:1px solid var(--b1);border-radius:6px;padding:16px;}
@@ -331,136 +332,270 @@ textarea.fi{min-height:65px;resize:vertical;}
 <!-- ══════════ PAGE: CHART ANALYSER ══════════ -->
 <div class="pg" id="pg-analyser">
 
-  <!-- Hero banner -->
-  <div style="background:linear-gradient(135deg,#fffbf0,#fff8e6);border:1px solid #e8d58a;border-radius:10px;padding:22px 24px;margin-bottom:14px;display:flex;align-items:center;gap:18px;">
-    <div style="font-size:42px;flex-shrink:0;">🤖</div>
-    <div>
-      <div style="font-family:var(--fh);font-size:20px;font-weight:800;color:#6b4c00;margin-bottom:4px;">AI Chart Analyser</div>
-      <div style="font-size:12px;color:#8a6600;line-height:1.6;max-width:600px;">Upload screenshots from Zerodha Kite or TradingView across <strong>3 timeframes</strong>. The AI reads all charts simultaneously, scores all 14 strategies against what it sees, and tells you the best one to trade right now — with exact entry, stop, and targets.</div>
+  <!-- Hero -->
+  <div style="background:linear-gradient(135deg,#fffbf0,#fff8e6);border:1px solid #e8d58a;border-radius:10px;padding:20px 22px;margin-bottom:14px;display:flex;align-items:center;gap:16px;">
+    <div style="font-size:36px;flex-shrink:0;">⚡</div>
+    <div style="flex:1;">
+      <div style="font-family:var(--fh);font-size:19px;font-weight:800;color:#6b4c00;margin-bottom:3px;">Rule-Based Strategy Matcher</div>
+      <div style="font-size:11px;color:#8a6600;line-height:1.6;">Enter your market data — no image upload, no API needed. The engine reads your numbers, scores all 14 strategies using rule logic, and recommends the top 3 with exact entry/stop/target levels.</div>
     </div>
-    <div style="margin-left:auto;text-align:center;flex-shrink:0;">
-      <div style="font-family:var(--fh);font-size:28px;font-weight:800;color:#d4a017;">14</div>
+    <div style="text-align:center;flex-shrink:0;background:#fff;border:1px solid #e8d58a;border-radius:8px;padding:10px 16px;">
+      <div style="font-family:var(--fh);font-size:26px;font-weight:800;color:#d4a017;">14</div>
       <div style="font-size:9px;color:var(--muted);letter-spacing:1px;">STRATEGIES<br>SCORED</div>
     </div>
   </div>
 
-  <!-- Setup notice -->
-  <div id="browser-warn" style="background:#eef6ff;border:1px solid #b8d8f8;border-radius:8px;padding:13px 16px;margin-bottom:16px;display:flex;align-items:flex-start;gap:12px;">
-    <div style="font-size:20px;flex-shrink:0;margin-top:1px;">⚙️</div>
-    <div style="flex:1;">
-      <div style="font-family:var(--fh);font-size:11px;font-weight:700;color:#1a4a8a;margin-bottom:4px;">One-time setup required — Cloudflare Worker proxy</div>
-      <div style="font-size:10px;color:#2d5a9a;line-height:1.7;">
-        To use AI analysis, you need to deploy a free Cloudflare Worker and paste its URL in the HTML file (line 2 of the &lt;script&gt; tag — replace <code style="background:#d8eaff;padding:2px 5px;border-radius:3px;font-size:9px;">https://YOUR-WORKER.workers.dev</code>).<br>
-        See the <strong>worker.js</strong> file included with this download for full setup instructions.
-      </div>
-    </div>
-    <button onclick="document.getElementById('browser-warn').style.display='none'" style="background:none;border:none;color:#6b8ab0;cursor:pointer;font-size:18px;flex-shrink:0;padding:0 4px;">×</button>
-  </div>
-
-  <!-- Instrument + context row -->
-  <div style="background:#fff;border:1px solid var(--b1);border-radius:8px;padding:16px;margin-bottom:16px;box-shadow:var(--shadow);">
-    <div style="font-family:var(--fh);font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;">Step 1 — Tell us what you're looking at</div>
-    <div class="fr" style="gap:12px;">
-      <div class="fg" style="margin-bottom:0">
-        <div class="fl">INSTRUMENT</div>
+  <!-- INSTRUMENT -->
+  <div style="background:#fff;border:1px solid var(--b1);border-radius:8px;padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow);">
+    <div style="font-family:var(--fh);font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;">Instrument</div>
+    <div class="fr">
+      <div class="fg" style="margin-bottom:0;">
+        <div class="fl">INSTRUMENT <span style="color:var(--acc3)">*</span></div>
         <select class="fi" id="an-instr">
           <option value="">— Select —</option>
           <optgroup label="NSE Indices"><option>NIFTY 50</option><option>BANKNIFTY</option><option>FINNIFTY</option><option>NIFTY MIDCAP SELECT</option></optgroup>
           <optgroup label="NSE Large Cap"><option>RELIANCE</option><option>TCS</option><option>HDFCBANK</option><option>INFY</option><option>ICICIBANK</option><option>KOTAKBANK</option><option>SBIN</option><option>AXISBANK</option><option>BAJFINANCE</option><option>TATAMOTORS</option><option>MARUTI</option><option>WIPRO</option><option>LT</option><option>ADANIPORTS</option></optgroup>
           <optgroup label="MCX Commodities"><option>GOLD MCX</option><option>CRUDE OIL MCX</option></optgroup>
-          <option value="other">Other (type below)</option>
+          <option value="other">Other</option>
         </select>
       </div>
-      <div class="fg" style="margin-bottom:0" id="an-other-wrap" style="display:none">
+      <div class="fg" style="margin-bottom:0;" id="an-other-wrap">
         <div class="fl">ENTER SYMBOL</div>
-        <input type="text" class="fi" id="an-other-sym" placeholder="e.g. WIPRO, LT">
-      </div>
-      <div class="fg" style="margin-bottom:0">
-        <div class="fl">EXTRA CONTEXT (optional)</div>
-        <input type="text" class="fi" id="an-ctx" placeholder="e.g. RSI at 52, India VIX 16, previous high 48200">
+        <input type="text" class="fi" id="an-other-sym" placeholder="e.g. WIPRO">
       </div>
     </div>
   </div>
 
-  <!-- 3 timeframe uploads -->
-  <div style="background:#fff;border:1px solid var(--b1);border-radius:8px;padding:16px;margin-bottom:16px;box-shadow:var(--shadow);">
-    <div style="font-family:var(--fh);font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;">Step 2 — Upload chart screenshots (1, 2, or all 3)</div>
-    <div class="tf-uploads">
-      <!-- Daily -->
-      <div>
-        <div style="font-family:var(--fh);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#1a8fd1;margin-bottom:6px;">📅 Daily Chart</div>
-        <div class="tf-zone" id="an-tz-daily" onclick="document.getElementById('an-fi-daily').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondrop="anTfDrop(event,'daily')">
-          <input type="file" id="an-fi-daily" accept="image/*" onchange="anTfLoad('daily',this.files[0])">
-          <div class="tf-icon">📊</div>
-          <div class="tf-hint">Daily candles — last 30 bars<br><span style="font-size:8px;color:#9fc8e8">Trend + key S/R</span></div>
-        </div>
+  <!-- SECTION TABS -->
+  <div style="display:flex;gap:0;margin-bottom:12px;border-radius:7px;overflow:hidden;border:1px solid var(--b1);">
+    <div class="an-tab on" id="ant-daily" onclick="anTab('daily')" style="flex:1;padding:9px 4px;text-align:center;font-size:10px;cursor:pointer;font-family:var(--fh);font-weight:700;transition:all .15s;background:#fffbf0;color:#8a6600;border-right:1px solid var(--b1);">📅 Daily</div>
+    <div class="an-tab" id="ant-hourly" onclick="anTab('hourly')" style="flex:1;padding:9px 4px;text-align:center;font-size:10px;cursor:pointer;font-family:var(--fh);font-weight:700;transition:all .15s;background:#fff;color:var(--muted);border-right:1px solid var(--b1);">🕐 Hourly</div>
+    <div class="an-tab" id="ant-5min" onclick="anTab('5min')" style="flex:1;padding:9px 4px;text-align:center;font-size:10px;cursor:pointer;font-family:var(--fh);font-weight:700;transition:all .15s;background:#fff;color:var(--muted);">⚡ 5-Min</div>
+  </div>
+
+  <!-- DAILY DATA PANEL -->
+  <div id="anp-daily" style="background:#fff;border:1px solid var(--b1);border-radius:8px;padding:16px;margin-bottom:12px;box-shadow:var(--shadow);">
+    <div style="font-family:var(--fh);font-size:10px;font-weight:700;color:#1a8fd1;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;">📅 Daily Chart Data — Trend &amp; Structure</div>
+    <div class="field-row-3">
+      <div class="fg"><div class="fl">PREV DAY HIGH</div><input type="number" class="fi" id="an-d-high" placeholder="e.g. 24650" step="any"></div>
+      <div class="fg"><div class="fl">PREV DAY LOW</div><input type="number" class="fi" id="an-d-low" placeholder="e.g. 24200" step="any"></div>
+      <div class="fg"><div class="fl">PREV DAY CLOSE</div><input type="number" class="fi" id="an-d-close" placeholder="e.g. 24450" step="any"></div>
+    </div>
+    <div class="field-row-3">
+      <div class="fg"><div class="fl">21 EMA (DAILY)</div><input type="number" class="fi" id="an-d-ema21" placeholder="e.g. 24100" step="any"></div>
+      <div class="fg"><div class="fl">50 EMA (DAILY)</div><input type="number" class="fi" id="an-d-ema50" placeholder="e.g. 23800" step="any"></div>
+      <div class="fg"><div class="fl">CURRENT PRICE (CMP)</div><input type="number" class="fi" id="an-d-cmp" placeholder="e.g. 24461" step="any"></div>
+    </div>
+    <div class="field-row-3">
+      <div class="fg"><div class="fl">DAILY RSI (14)</div><input type="number" class="fi" id="an-d-rsi" placeholder="e.g. 58" step="any"></div>
+      <div class="fg"><div class="fl">INDIA VIX</div><input type="number" class="fi" id="an-d-vix" placeholder="e.g. 16.5" step="any"></div>
+      <div class="fg">
+        <div class="fl">DAILY TREND DIRECTION</div>
+        <select class="fi" id="an-d-trend">
+          <option value="">— Select —</option>
+          <option value="strong_up">Strong Uptrend (HH HL, above all EMAs)</option>
+          <option value="mild_up">Mild Uptrend (above 21 EMA)</option>
+          <option value="sideways">Sideways / Ranging</option>
+          <option value="mild_down">Mild Downtrend (below 21 EMA)</option>
+          <option value="strong_down">Strong Downtrend (LH LL, below all EMAs)</option>
+        </select>
       </div>
-      <!-- Hourly -->
-      <div>
-        <div style="font-family:var(--fh);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#9c27b0;margin-bottom:6px;">🕐 Hourly Chart</div>
-        <div class="tf-zone" id="an-tz-hourly" onclick="document.getElementById('an-fi-hourly').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondrop="anTfDrop(event,'hourly')">
-          <input type="file" id="an-fi-hourly" accept="image/*" onchange="anTfLoad('hourly',this.files[0])">
-          <div class="tf-icon">📈</div>
-          <div class="tf-hint">1-hour candles — last 30 bars<br><span style="font-size:8px;color:#d4a8e8">Swing structure</span></div>
-        </div>
+    </div>
+    <div class="field-row-3">
+      <div class="fg">
+        <div class="fl">BOLLINGER BANDS STATUS (DAILY)</div>
+        <select class="fi" id="an-d-bb">
+          <option value="">— Select —</option>
+          <option value="squeeze">Squeezing (BBs inside Keltner — black dots)</option>
+          <option value="squeeze_fire">Squeeze just fired (first gray dot today)</option>
+          <option value="expanding_up">Expanding upward</option>
+          <option value="expanding_down">Expanding downward</option>
+          <option value="normal">Normal / No squeeze</option>
+        </select>
       </div>
-      <!-- 5-min -->
-      <div>
-        <div style="font-family:var(--fh);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#e67e22;margin-bottom:6px;">⚡ 5-Min Chart</div>
-        <div class="tf-zone" id="an-tz-5min" onclick="document.getElementById('an-fi-5min').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondrop="anTfDrop(event,'5min')">
-          <input type="file" id="an-fi-5min" accept="image/*" onchange="anTfLoad('5min',this.files[0])">
-          <div class="tf-icon">⚡</div>
-          <div class="tf-hint">5-min candles — last 30 bars<br><span style="font-size:8px;color:#f5c88a">Entry timing</span></div>
-        </div>
+      <div class="fg">
+        <div class="fl">52-WEEK HIGH PROXIMITY</div>
+        <select class="fi" id="an-d-52w">
+          <option value="">— Select —</option>
+          <option value="at_high">At or breaking 52-week high</option>
+          <option value="near_high">Within 3% of 52-week high</option>
+          <option value="mid">Mid range</option>
+          <option value="near_low">Near 52-week low</option>
+        </select>
+      </div>
+      <div class="fg">
+        <div class="fl">TODAY'S DATE / DAY</div>
+        <select class="fi" id="an-d-day">
+          <option value="">— Select —</option>
+          <option value="mon">Monday</option>
+          <option value="tue">Tuesday</option>
+          <option value="wed">Wednesday</option>
+          <option value="thu">Thursday</option>
+          <option value="fri">Friday</option>
+        </select>
       </div>
     </div>
   </div>
 
-  <!-- Analyse button -->
-  <div style="text-align:center;margin-bottom:16px;">
-    <button class="btn bai" style="font-size:13px;padding:12px 32px;border-radius:8px;" onclick="runAnalyser()">
-      🤖 Analyse Charts &amp; Recommend Best Strategy
+  <!-- HOURLY DATA PANEL -->
+  <div id="anp-hourly" style="background:#fff;border:1px solid var(--b1);border-radius:8px;padding:16px;margin-bottom:12px;box-shadow:var(--shadow);display:none;">
+    <div style="font-family:var(--fh);font-size:10px;font-weight:700;color:#9c27b0;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;">🕐 Hourly Chart Data — Swing Structure</div>
+    <div class="field-row-3">
+      <div class="fg"><div class="fl">RECENT SWING HIGH (1H)</div><input type="number" class="fi" id="an-h-swH" placeholder="e.g. 24600" step="any"></div>
+      <div class="fg"><div class="fl">RECENT SWING LOW (1H)</div><input type="number" class="fi" id="an-h-swL" placeholder="e.g. 24100" step="any"></div>
+      <div class="fg"><div class="fl">21 EMA (1H)</div><input type="number" class="fi" id="an-h-ema21" placeholder="e.g. 24380" step="any"></div>
+    </div>
+    <div class="field-row-3">
+      <div class="fg">
+        <div class="fl">HOURLY STRUCTURE</div>
+        <select class="fi" id="an-h-struct">
+          <option value="">— Select —</option>
+          <option value="uptrend">Uptrend (HH + HL pattern)</option>
+          <option value="downtrend">Downtrend (LH + LL pattern)</option>
+          <option value="range">Range / Consolidation</option>
+          <option value="breakout">Breaking out of range</option>
+          <option value="breakdown">Breaking down from range</option>
+        </select>
+      </div>
+      <div class="fg">
+        <div class="fl">HOURLY RSI (14)</div>
+        <input type="number" class="fi" id="an-h-rsi" placeholder="e.g. 62" step="any">
+      </div>
+      <div class="fg">
+        <div class="fl">WEEKLY 21 EMA</div>
+        <input type="number" class="fi" id="an-h-wema" placeholder="e.g. 23800" step="any">
+      </div>
+    </div>
+    <div class="field-row-3">
+      <div class="fg">
+        <div class="fl">HOURLY BB STATUS</div>
+        <select class="fi" id="an-h-bb">
+          <option value="">— Select —</option>
+          <option value="squeeze">Squeezing (black dots)</option>
+          <option value="squeeze_fire">Squeeze fired (gray dot)</option>
+          <option value="expanding">Expanding</option>
+          <option value="normal">Normal</option>
+        </select>
+      </div>
+      <div class="fg">
+        <div class="fl">PCR (PUT-CALL RATIO)</div>
+        <input type="number" class="fi" id="an-h-pcr" placeholder="e.g. 1.25" step="0.01">
+      </div>
+      <div class="fg">
+        <div class="fl">FII ACTIVITY TODAY</div>
+        <select class="fi" id="an-h-fii">
+          <option value="">— Select —</option>
+          <option value="buy">FII Net Buyers</option>
+          <option value="sell">FII Net Sellers</option>
+          <option value="neutral">Neutral / DII countering</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5-MIN DATA PANEL -->
+  <div id="anp-5min" style="background:#fff;border:1px solid var(--b1);border-radius:8px;padding:16px;margin-bottom:12px;box-shadow:var(--shadow);display:none;">
+    <div style="font-family:var(--fh);font-size:10px;font-weight:700;color:#e67e22;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;">⚡ 5-Min Chart Data — Entry Timing</div>
+    <div class="field-row-3">
+      <div class="fg"><div class="fl">TODAY'S OPEN</div><input type="number" class="fi" id="an-5-open" placeholder="e.g. 24200" step="any"></div>
+      <div class="fg"><div class="fl">PREV DAY CLOSE</div><input type="number" class="fi" id="an-5-pclose" placeholder="e.g. 24150" step="any"></div>
+      <div class="fg"><div class="fl">5-MIN 21 EMA</div><input type="number" class="fi" id="an-5-ema21" placeholder="e.g. 24390" step="any"></div>
+    </div>
+    <div class="field-row-3">
+      <div class="fg">
+        <div class="fl">5-MIN TREND</div>
+        <select class="fi" id="an-5-trend">
+          <option value="">— Select —</option>
+          <option value="uptrend">Clear uptrend (HH HL)</option>
+          <option value="downtrend">Clear downtrend (LH LL)</option>
+          <option value="choppy">Choppy / No direction</option>
+          <option value="squeeze">In squeeze (black dots)</option>
+          <option value="squeeze_fire">Squeeze just fired</option>
+        </select>
+      </div>
+      <div class="fg">
+        <div class="fl">5-MIN RSI</div>
+        <input type="number" class="fi" id="an-5-rsi" placeholder="e.g. 55" step="any">
+      </div>
+      <div class="fg">
+        <div class="fl">CURRENT SESSION TIME</div>
+        <select class="fi" id="an-5-time">
+          <option value="">— Select —</option>
+          <option value="preopen">Pre-open (9:00–9:15)</option>
+          <option value="open">Opening hour (9:15–10:15)</option>
+          <option value="mid">Mid session (10:15–14:00)</option>
+          <option value="close">Closing hour (14:00–15:30)</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-row-3">
+      <div class="fg">
+        <div class="fl">INTRADAY SIGNAL</div>
+        <select class="fi" id="an-5-signal">
+          <option value="">— Select —</option>
+          <option value="gap_up">Gap up at open</option>
+          <option value="gap_down">Gap down at open</option>
+          <option value="breakout">Breakout from range</option>
+          <option value="reversal">Reversal at key level</option>
+          <option value="pullback">Pullback to EMA</option>
+          <option value="none">No clear signal</option>
+        </select>
+      </div>
+      <div class="fg">
+        <div class="fl">5-MIN VOLUME</div>
+        <select class="fi" id="an-5-vol">
+          <option value="">— Select —</option>
+          <option value="high">High (above 20-bar avg)</option>
+          <option value="normal">Normal</option>
+          <option value="low">Low (below 20-bar avg)</option>
+        </select>
+      </div>
+      <div class="fg">
+        <div class="fl">ATR (APPROXIMATE RANGE)</div>
+        <input type="number" class="fi" id="an-5-atr" placeholder="e.g. 80 (NIFTY pts)" step="any">
+      </div>
+    </div>
+  </div>
+
+  <!-- ANALYSE BUTTON -->
+  <div style="text-align:center;margin:16px 0;">
+    <button class="btn bp2" style="font-size:13px;padding:12px 32px;border-radius:8px;font-family:var(--fh);" onclick="runRuleEngine()">
+      ⚡ Score All 14 Strategies
     </button>
-    <div style="font-size:10px;color:var(--muted);margin-top:8px;">Upload at least 1 chart to get started. 3 charts = most accurate result.</div>
+    <div style="font-size:10px;color:var(--muted);margin-top:7px;">Fill daily data at minimum. Hourly + 5-min = more accurate scoring.</div>
   </div>
 
-  <!-- Thinking state -->
-  <div class="ath" id="an-thinking" style="background:#fff;border:1px solid var(--b1);border-radius:8px;padding:28px;">
-    <div class="ads"><div class="ad"></div><div class="ad"></div><div class="ad"></div></div>
-    <p id="an-thinking-msg" style="font-size:12px;">Reading chart structure...</p>
-  </div>
-
-  <!-- RESULTS SECTION (hidden until analysis runs) -->
+  <!-- RESULTS -->
   <div id="an-results" style="display:none;">
+    <!-- Market state summary -->
+    <div id="an-state-summary" style="background:#f8fffe;border:1px solid #c0e8d8;border-radius:8px;padding:14px 16px;margin-bottom:14px;"></div>
 
-    <!-- Strategy recommendation cards -->
-    <div style="background:#fff;border:2px solid #d4a017;border-radius:10px;padding:20px;margin-bottom:16px;box-shadow:0 2px 8px rgba(212,160,23,.15);">
+    <!-- Top 3 strategy cards -->
+    <div style="background:#fff;border:2px solid #d4a017;border-radius:10px;padding:18px;margin-bottom:14px;box-shadow:0 2px 8px rgba(212,160,23,.12);">
       <div style="font-family:var(--fh);font-size:16px;font-weight:800;color:#8a6600;margin-bottom:4px;display:flex;align-items:center;gap:10px;">
-        🏆 Strategy Recommendations
-        <span style="margin-left:auto;font-size:10px;font-weight:500;color:var(--muted)" id="an-instr-label"></span>
+        🏆 Top 3 Strategy Matches
+        <span id="an-instr-label" style="margin-left:auto;font-size:10px;font-weight:500;color:var(--muted)"></span>
       </div>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:14px;" id="an-rec-subtitle">Based on your chart analysis:</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:14px;" id="an-rec-subtitle"></div>
       <div class="rec-cards" id="an-rec-cards"></div>
     </div>
 
-    <!-- Key levels from AI -->
-    <div style="background:#fff;border:1px solid var(--b1);border-radius:8px;padding:18px;margin-bottom:16px;box-shadow:var(--shadow);">
-      <div style="font-family:var(--fh);font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;">Levels Extracted from Charts</div>
+    <!-- Full score table -->
+    <div style="background:#fff;border:1px solid var(--b1);border-radius:8px;padding:16px;margin-bottom:14px;box-shadow:var(--shadow);">
+      <div style="font-family:var(--fh);font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;">All 14 Strategies Scored</div>
+      <div id="an-all-scores"></div>
+    </div>
+
+    <!-- Calculated levels for top strategy -->
+    <div style="background:#fff;border:1px solid var(--b1);border-radius:8px;padding:16px;margin-bottom:14px;box-shadow:var(--shadow);">
+      <div style="font-family:var(--fh);font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;">Calculated Levels — Top Strategy</div>
       <div class="lg" id="an-levels"></div>
     </div>
 
-    <!-- Full AI analysis text -->
-    <div style="background:#fff;border:1px solid var(--b1);border-radius:8px;padding:18px;margin-bottom:16px;box-shadow:var(--shadow);">
-      <div style="font-family:var(--fh);font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;">Full AI Analysis</div>
-      <div id="an-full-text" style="font-size:11px;line-height:1.8;white-space:pre-wrap;color:var(--txt);"></div>
-    </div>
-
-    <!-- Action buttons -->
-    <div class="br" style="justify-content:center;margin-bottom:24px;">
+    <div class="br" style="justify-content:center;margin-bottom:20px;">
       <button class="btn bp2" style="font-size:12px;padding:10px 24px;" id="an-trade-btn" onclick="goToTradeWithRec()">Use Top Strategy → Enter Trade</button>
-      <button class="btn bs2" onclick="resetAnalyser()">↺ Analyse New Charts</button>
+      <button class="btn bs2" onclick="resetAnalyser()">↺ Reset &amp; Re-enter Data</button>
     </div>
-
   </div>
 
 </div>
@@ -654,7 +789,7 @@ textarea.fi{min-height:65px;resize:vertical;}
 // ─────────────────────────────────────────────────────────────────────────────
 // WORKER URL — paste your Cloudflare Worker URL here after deploying
 // Example: 'https://tradeflow-proxy.YOUR-NAME.workers.dev'
-const WORKER_URL = 'https://tradeflow-proxy.junaidv328.workers.dev/';
+const WORKER_URL = 'https://YOUR-WORKER.workers.dev';
 // ─────────────────────────────────────────────────────────────────────────────
 // ═══════════════════════════════ STRATEGY DATA ═══════════════════════════════
 const STRATS=[
@@ -1033,6 +1168,13 @@ const S={
   imgs:[], calcLevels:null,
   qIdx:0, // current question index
   journal: JSON.parse(localStorage.getItem('tf_j3')||'[]'),
+};
+
+// ── ANALYSER STATE (rule engine, no API needed) ──
+const AN = {
+  topStratId: null,
+  calcLevels: null,
+  imgs: {daily:null, hourly:null, '5min':null},
 };
 
 // ═══════════════════════════════ INIT ═══════════════════════════════
@@ -1459,285 +1601,428 @@ function useRecommendedStrat(id, name){
   }
 }
 
-// ═══════════════════════════════ CHART ANALYSER PAGE ═══════════════════════════════
+// ═══════════════════════════════ CHART ANALYSER — RULE ENGINE ═══════════════════════════════
 
-// Separate state for the analyser page (doesn't interfere with wizard)
-const AN = {
-  imgs: {daily:null, hourly:null, '5min':null},
-  topStratId: null,
-  result: null,
-};
-
-document.getElementById('an-instr').addEventListener('change', function(){
-  document.getElementById('an-other-wrap') && (document.getElementById('an-other-wrap').style.display = this.value==='other'?'block':'none');
+// Tab switching
+function anTab(tab) {
+  ['daily','hourly','5min'].forEach(t => {
+    document.getElementById('anp-'+t).style.display = t===tab ? 'block' : 'none';
+    const el = document.getElementById('ant-'+t);
+    if(t===tab){ el.style.background='#fffbf0'; el.style.color='#8a6600'; }
+    else { el.style.background='#fff'; el.style.color='var(--muted)'; }
+  });
+}
+document.getElementById('an-instr').addEventListener('change',function(){
+  const ow=document.getElementById('an-other-wrap');
+  if(ow) ow.style.display=this.value==='other'?'block':'none';
 });
 
-function anTfLoad(tf, file){
-  if(!file) return;
-  const r = new FileReader();
-  r.onload = e => {
-    AN.imgs[tf] = {name:file.name, data:e.target.result, mime:file.type};
-    anRenderZone(tf);
+// ── READ ALL INPUTS ──
+function readMarketState() {
+  const n = id => parseFloat(document.getElementById(id)?.value)||0;
+  const s = id => document.getElementById(id)?.value||'';
+
+  const d = {
+    high: n('an-d-high'), low: n('an-d-low'), close: n('an-d-close'),
+    ema21: n('an-d-ema21'), ema50: n('an-d-ema50'), cmp: n('an-d-cmp'),
+    rsi: n('an-d-rsi'), vix: n('an-d-vix'),
+    trend: s('an-d-trend'), bb: s('an-d-bb'), w52: s('an-d-52w'), day: s('an-d-day'),
   };
-  r.readAsDataURL(file);
-}
-function anTfDrop(e, tf){
-  e.preventDefault();
-  document.getElementById('an-tz-'+tf).classList.remove('drag');
-  if(e.dataTransfer.files[0]) anTfLoad(tf, e.dataTransfer.files[0]);
-}
-function anRenderZone(tf){
-  const img = AN.imgs[tf];
-  const zone = document.getElementById('an-tz-'+tf);
-  if(!img) return;
-  const inputIds = {daily:'an-fi-daily', hourly:'an-fi-hourly', '5min':'an-fi-5min'};
-  zone.innerHTML = `
-    <img class="tf-preview" src="${img.data}" alt="${tf}" style="height:80px;">
-    <div class="tf-name" style="font-size:9px;color:var(--muted);margin-top:4px;">${img.name.substring(0,18)}</div>
-    <button class="tf-rm" onclick="event.stopPropagation();AN.imgs['${tf}']=null;anResetZone('${tf}')">×</button>`;
-  zone.onclick = null; // prevent re-trigger after image loads
-}
-function anResetZone(tf){
-  const zone = document.getElementById('an-tz-'+tf);
-  const icons = {daily:'📊', hourly:'📈', '5min':'⚡'};
-  const hints = {daily:'Daily candles — last 30 bars<br><span style="font-size:8px;color:#9fc8e8">Trend + key S/R</span>',
-                 hourly:'1-hour candles — last 30 bars<br><span style="font-size:8px;color:#d4a8e8">Swing structure</span>',
-                 '5min':'5-min candles — last 30 bars<br><span style="font-size:8px;color:#f5c88a">Entry timing</span>'};
-  const fIds = {daily:'an-fi-daily', hourly:'an-fi-hourly', '5min':'an-fi-5min'};
-  zone.innerHTML = `
-    <input type="file" id="${fIds[tf]}" accept="image/*" onchange="anTfLoad('${tf}',this.files[0])">
-    <div class="tf-icon">${icons[tf]}</div>
-    <div class="tf-hint">${hints[tf]}</div>`;
-  zone.onclick = () => document.getElementById(fIds[tf]).click();
+  const h = {
+    swH: n('an-h-swH'), swL: n('an-h-swL'), ema21: n('an-h-ema21'),
+    struct: s('an-h-struct'), rsi: n('an-h-rsi'), wema: n('an-h-wema'),
+    bb: s('an-h-bb'), pcr: n('an-h-pcr'), fii: s('an-h-fii'),
+  };
+  const m = {
+    open: n('an-5-open'), pclose: n('an-5-pclose'), ema21: n('an-5-ema21'),
+    trend: s('an-5-trend'), rsi: n('an-5-rsi'), time: s('an-5-time'),
+    signal: s('an-5-signal'), vol: s('an-5-vol'), atr: n('an-5-atr'),
+  };
+
+  // ── DERIVED FEATURES ──
+  const cmp = d.cmp || d.close;
+
+  // Trend
+  const bullish = d.trend === 'strong_up' || d.trend === 'mild_up';
+  const bearish  = d.trend === 'strong_down' || d.trend === 'mild_down';
+  const sideways = d.trend === 'sideways';
+  const strongBull = d.trend === 'strong_up';
+  const strongBear = d.trend === 'strong_down';
+
+  // EMA position
+  const aboveEma21 = d.ema21 > 0 && cmp > d.ema21;
+  const aboveEma50 = d.ema50 > 0 && cmp > d.ema50;
+  const aboveWeeklyEma = h.wema > 0 && cmp > h.wema;
+
+  // Gap
+  const gapUp   = m.open > 0 && m.pclose > 0 && m.open > m.pclose * 1.002;
+  const gapDown  = m.open > 0 && m.pclose > 0 && m.open < m.pclose * 0.998;
+  const gapSize  = m.open > 0 && m.pclose > 0 ? Math.abs(m.open - m.pclose)/m.pclose*100 : 0;
+  const validGapDay = d.day && d.day !== 'mon';
+
+  // Squeeze
+  const dailySqueeze     = d.bb === 'squeeze';
+  const dailySqueezeFire = d.bb === 'squeeze_fire';
+  const hourlySqueeze    = h.bb === 'squeeze';
+  const hourlySqueezeFire= h.bb === 'squeeze_fire';
+  const fiveMinSqueeze   = m.trend === 'squeeze';
+  const fiveMinSqueezeFire=m.trend === 'squeeze_fire';
+
+  // Range / consolidation
+  const hourlyRange = h.struct === 'range';
+  const dailyRange  = sideways;
+  const hourlyBreakout = h.struct === 'breakout' || h.struct === 'breakdown';
+
+  // RSI conditions
+  const rsiOversold  = d.rsi > 0 && d.rsi < 40;
+  const rsiOverbought= d.rsi > 0 && d.rsi > 65;
+  const rsiNeutral   = d.rsi > 40 && d.rsi < 60;
+  const hrsiOversold = h.rsi > 0 && h.rsi < 40;
+  const hrsiOverbought=h.rsi > 0 && h.rsi > 65;
+
+  // VIX
+  const vixLow    = d.vix > 0 && d.vix < 14;
+  const vixNormal = d.vix >= 14 && d.vix <= 20;
+  const vixHigh   = d.vix > 20;
+
+  // PCR extremes
+  const pcrBullish  = h.pcr > 1.3;
+  const pcrBearish  = h.pcr > 0 && h.pcr < 0.7;
+  const pcrExtreme  = pcrBullish || pcrBearish;
+
+  // 52-week
+  const atBreakout = d.w52 === 'at_high' || d.w52 === 'near_high';
+
+  // Pullback to EMA
+  const pullbackToEma = m.signal === 'pullback' || (aboveEma21 && m.rsi > 0 && m.rsi < 50 && bullish);
+
+  // Session time
+  const goodIntraTime = m.time === 'mid' || m.time === 'open';
+  const openTime = m.time === 'open';
+  const notExpiry = d.day !== 'thu'; // NIFTY expiry
+
+  // FII
+  const fiiBuying  = h.fii === 'buy';
+  const fiiSelling = h.fii === 'sell';
+
+  // Volume
+  const highVol = m.vol === 'high';
+  const lowVol  = m.vol === 'low';
+
+  // Reversal signal
+  const reversalSignal = m.signal === 'reversal';
+  const breakoutSignal = m.signal === 'breakout';
+  const hourlyUptrend  = h.struct === 'uptrend';
+  const hourlyDowntrend= h.struct === 'downtrend';
+
+  return {
+    d,h,m,cmp,
+    bullish,bearish,sideways,strongBull,strongBear,
+    aboveEma21,aboveEma50,aboveWeeklyEma,
+    gapUp,gapDown,gapSize,validGapDay,
+    dailySqueeze,dailySqueezeFire,hourlySqueeze,hourlySqueezeFire,fiveMinSqueeze,fiveMinSqueezeFire,
+    hourlyRange,dailyRange,hourlyBreakout,
+    rsiOversold,rsiOverbought,rsiNeutral,hrsiOversold,hrsiOverbought,
+    vixLow,vixNormal,vixHigh,
+    pcrBullish,pcrBearish,pcrExtreme,
+    atBreakout,pullbackToEma,reversalSignal,breakoutSignal,
+    goodIntraTime,openTime,notExpiry,
+    fiiBuying,fiiSelling,highVol,lowVol,
+    hourlyUptrend,hourlyDowntrend,
+  };
 }
 
-async function runAnalyser(){
-  const uploaded = Object.entries(AN.imgs).filter(([k,v])=>v);
-  if(uploaded.length === 0){ alert('Please upload at least one chart screenshot.'); return; }
+// ── SCORING ENGINE ── each strategy returns 0-100
+function scoreAll(st) {
+  const scores = {};
 
+  // 01 Opening Gap Fade
+  { let s=0;
+    if(st.gapUp||st.gapDown) s+=35;
+    if(st.gapSize>0.2&&st.gapSize<1.0) s+=25;
+    if(st.validGapDay) s+=20;
+    if(st.lowVol) s+=10;
+    if(!st.vixHigh) s+=10;
+    scores[0]=Math.min(s,100); }
+
+  // 02 Pivot Point Play
+  { let s=0;
+    if(!st.vixHigh) s+=20;
+    if(st.goodIntraTime) s+=20;
+    if(st.hourlyRange||st.dailyRange) s+=25;
+    if(st.rsiNeutral) s+=15;
+    if(!st.dailySqueeze) s+=10;
+    if(st.d.high>0&&st.d.low>0&&st.d.close>0) s+=10;
+    scores[1]=Math.min(s,100); }
+
+  // 03 PCR / OI Extreme Fade
+  { let s=0;
+    if(st.pcrExtreme) s+=50;
+    if(st.notExpiry) s+=15;
+    if(st.goodIntraTime) s+=15;
+    if(st.hourlyRange||st.dailyRange) s+=10;
+    if(!st.vixHigh) s+=10;
+    scores[2]=Math.min(s,100); }
+
+  // 04 TTM Squeeze 5-min
+  { let s=0;
+    if(st.fiveMinSqueezeFire) s+=50;
+    else if(st.fiveMinSqueeze) s+=25;
+    if(st.hourlySqueeze||st.hourlySqueezeFire) s+=20;
+    if(st.bullish&&!st.vixHigh) s+=15;
+    if(st.goodIntraTime) s+=15;
+    scores[3]=Math.min(s,100); }
+
+  // 05 EMA Pullback
+  { let s=0;
+    if(st.bullish||st.bearish) s+=20;
+    if(st.aboveEma21&&st.bullish) s+=25;
+    if(st.pullbackToEma) s+=25;
+    if(st.aboveEma50) s+=10;
+    if(st.goodIntraTime) s+=10;
+    if(!st.hourlyRange) s+=10;
+    scores[4]=Math.min(s,100); }
+
+  // 06 HOPL/LOPH Reversal
+  { let s=0;
+    if(st.reversalSignal) s+=40;
+    if(st.rsiOverbought||st.rsiOversold) s+=20;
+    if(st.hrsiOverbought||st.hrsiOversold) s+=15;
+    if(st.highVol) s+=15;
+    if(st.goodIntraTime) s+=10;
+    scores[5]=Math.min(s,100); }
+
+  // 07 TTM Squeeze Daily (Swing)
+  { let s=0;
+    if(st.dailySqueezeFire) s+=50;
+    else if(st.dailySqueeze) s+=25;
+    if(st.aboveWeeklyEma&&st.bullish) s+=20;
+    if(!st.vixHigh) s+=10;
+    if(st.fiiBuying) s+=10;
+    if(st.hourlySqueezeFire||st.hourlySqueeze) s+=10;
+    scores[6]=Math.min(s,100); }
+
+  // 08 Reversion to Mean
+  { let s=0;
+    if(st.bullish&&!st.dailySqueeze) s+=25;
+    if(st.rsiOversold&&st.bullish) s+=25;
+    if(st.pullbackToEma) s+=25;
+    if(!st.dailySqueeze&&!st.dailySqueezeFire) s+=15;
+    if(st.hourlyUptrend) s+=10;
+    scores[7]=Math.min(s,100); }
+
+  // 09 Breakout Momentum
+  { let s=0;
+    if(st.atBreakout) s+=35;
+    if(st.strongBull) s+=20;
+    if(st.highVol) s+=20;
+    if(st.breakoutSignal) s+=15;
+    if(st.fiiBuying) s+=10;
+    scores[8]=Math.min(s,100); }
+
+  // 10 Triple Screen
+  { let s=0;
+    if(st.aboveWeeklyEma) s+=30;
+    if(st.bullish&&st.rsiOversold) s+=25;
+    if(st.hourlyUptrend&&st.bullish) s+=20;
+    if(st.fiiBuying) s+=15;
+    if(st.aboveEma50) s+=10;
+    scores[9]=Math.min(s,100); }
+
+  // 11 Propulsion Play
+  { let s=0;
+    if(st.dailySqueezeFire) s+=45;
+    else if(st.dailySqueeze) s+=20;
+    if(st.aboveWeeklyEma) s+=15;
+    if(!st.rsiOverbought) s+=15;
+    if(st.bullish) s+=15;
+    if(st.highVol) s+=10;
+    scores[10]=Math.min(s,100); }
+
+  // 12 Weekly Squeeze
+  { let s=0;
+    if(st.dailySqueezeFire&&st.hourlySqueezeFire) s+=50;
+    else if(st.dailySqueezeFire) s+=30;
+    if(st.aboveWeeklyEma&&st.bullish) s+=20;
+    if(st.fiiBuying) s+=15;
+    if(!st.vixHigh) s+=15;
+    scores[11]=Math.min(s,100); }
+
+  // 13 Seasonal + Momentum
+  { let s=0;
+    if(st.bullish) s+=25;
+    if(st.aboveEma21&&st.aboveEma50) s+=25;
+    if(st.fiiBuying) s+=20;
+    if(st.rsiNeutral||st.rsiOversold) s+=15;
+    if(st.vixLow||st.vixNormal) s+=15;
+    scores[12]=Math.min(s,100); }
+
+  // 14 Fibonacci Swing
+  { let s=0;
+    if(st.rsiOversold&&st.bullish) s+=30;
+    if(st.hrsiOversold&&st.hourlyUptrend) s+=25;
+    if(st.d.high>0&&st.d.low>0) s+=20;
+    if(st.aboveWeeklyEma) s+=15;
+    if(st.vixNormal||st.vixLow) s+=10;
+    scores[13]=Math.min(s,100); }
+
+  return scores;
+}
+
+// ── DESCRIBE MARKET STATE ──
+function describeState(st) {
+  const parts = [];
+  const d = st.bullish?'Bullish':st.bearish?'Bearish':'Sideways';
+  parts.push(`Daily trend: <strong>${d}</strong>`);
+  if(st.dailySqueezeFire) parts.push('<strong style="color:#d4a017">Daily squeeze FIRED today ⚡</strong>');
+  else if(st.dailySqueeze) parts.push('Daily squeeze building...');
+  if(st.gapUp) parts.push(`Gap UP today (${st.gapSize.toFixed(2)}%)`);
+  if(st.gapDown) parts.push(`Gap DOWN today (${st.gapSize.toFixed(2)}%)`);
+  if(st.pcrExtreme) parts.push(`PCR extreme: ${st.h.pcr} (${st.pcrBullish?'overbullish fade signal':'overbearish fade signal'})`);
+  if(st.atBreakout) parts.push('Near 52-week high — breakout zone');
+  if(st.vixHigh) parts.push('India VIX elevated — high volatility');
+  if(st.rsiOversold) parts.push('Daily RSI oversold ('+st.d.rsi+')');
+  if(st.rsiOverbought) parts.push('Daily RSI overbought ('+st.d.rsi+')');
+  return parts;
+}
+
+// ── MAIN RUN ──
+function runRuleEngine() {
+  console.log('runRuleEngine called');
   const instrEl = document.getElementById('an-instr');
-  const instr = instrEl.value === 'other'
-    ? (document.getElementById('an-other-sym')?.value || 'Unknown')
-    : instrEl.value || 'NIFTY 50';
-  const ctx = document.getElementById('an-ctx').value;
+  const instr = instrEl.value==='other'?(document.getElementById('an-other-sym')?.value||'Custom'):instrEl.value;
+  if(!instr){ alert('Please select an instrument first.'); return; }
 
-  document.getElementById('an-thinking').style.display = 'block';
-  document.getElementById('an-results').style.display = 'none';
+  // Need at least some daily data
+  const cmp = parseFloat(document.getElementById('an-d-cmp')?.value)||0;
+  const trend = document.getElementById('an-d-trend')?.value||'';
+  if(!cmp && !trend){ alert('Please fill in at least the daily CMP or trend direction.'); return; }
+  console.log('Market state reading...');
 
-  const tfLabels = {daily:'Daily (trend/S&R)', hourly:'1-Hour (swing)', '5min':'5-Minute (entry)'};
-  const msgs = [
-    'Reading chart structure...', 'Spotting key S/R levels...', 'Checking trend direction...',
-    'Scoring all 14 strategies...', 'Ranking best matches...', 'Calculating entry & exits...'
-  ];
-  let mi = 0;
-  const iv = setInterval(()=>{ mi=(mi+1)%msgs.length; document.getElementById('an-thinking-msg').textContent=msgs[mi]; }, 1300);
+  const st = readMarketState();
+  const scores = scoreAll(st);
 
-  try{
-    const stratSummaries = STRATS.map(s=>`S${s.num} "${s.title}" (${s.type}, WR:${s.wr}): ${s.reason.substring(0,100)}`).join('\n');
-    const tfDesc = uploaded.map(([tf,img],i)=>`Image ${i+1}: ${tfLabels[tf]} chart of ${instr}`).join('\n');
-    const uploadedList = uploaded.map(([tf])=>tfLabels[tf]).join(' + ');
+  // Sort all 14 by score
+  const sorted = Object.entries(scores)
+    .map(([id,score])=>({id:parseInt(id),score,strat:STRATS[parseInt(id)]}))
+    .sort((a,b)=>b.score-a.score);
 
-    const sys = `You are an elite NSE/BSE Indian market technical analyst. You receive ${uploaded.length} chart screenshot(s) and score all 14 trading strategies against what you observe.
+  const top3 = sorted.slice(0,3);
+  AN.topStratId = top3[0].id;
 
-INSTRUMENT: ${instr}
-TIMEFRAMES PROVIDED: ${uploadedList}
-TRADER'S CONTEXT: ${ctx||'None'}
+  // Market state summary
+  const stateParts = describeState(st);
+  document.getElementById('an-state-summary').innerHTML =
+    `<div style="font-family:var(--fh);font-size:10px;font-weight:700;color:#0d7a42;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;">Market State Detected</div>
+     <div style="display:flex;flex-wrap:wrap;gap:8px;">${stateParts.map(p=>`<span style="background:#f0fdf6;border:1px solid #bbf0d4;border-radius:4px;padding:3px 9px;font-size:10px;color:#1a6640;">${p}</span>`).join('')}</div>`;
 
-THE 14 STRATEGIES TO SCORE:
-${stratSummaries}
+  // Rec cards
+  const rankCls = ['r1','r2','r3'];
+  const rankLbl = ['🥇 Best Match','🥈 Strong Fit','🥉 Also Valid'];
+  document.getElementById('an-instr-label').textContent = instr;
+  document.getElementById('an-rec-subtitle').textContent =
+    `Rule engine scored all 14 strategies against your data. Top match: ${top3[0].strat.title} (${top3[0].score}%)`;
 
-YOUR COMPLETE TASK:
+  document.getElementById('an-rec-cards').innerHTML = top3.map((r,i)=>`
+    <div class="rec-card ${rankCls[i]}">
+      <div class="rec-rank">${rankLbl[i]}</div>
+      <div class="rec-name">${r.strat.title}</div>
+      <div class="rec-tags">${r.strat.tags.map(t=>`<span class="tag tag-${t}">${t}</span>`).join('')}</div>
+      <div class="rec-score-txt">${r.score}% match</div>
+      <div class="rec-bar-wrap"><div class="rec-bar" style="width:${r.score}%"></div></div>
+      <div class="rec-why" style="font-size:9.5px;color:var(--muted);margin-top:5px;line-height:1.5;">${r.strat.reason.substring(0,160)}...</div>
+      <button class="rec-use-btn" onclick="anUseStrat(${r.id},'${r.strat.title.replace(/'/g,"\'")}')">Use This → Enter Trade</button>
+    </div>`).join('');
 
-## MULTI-TIMEFRAME OVERVIEW
-Describe what you see on EACH chart: trend, momentum, key price levels, any patterns forming. Be specific.
+  // All scores table
+  document.getElementById('an-all-scores').innerHTML =
+    `<div style="display:flex;flex-direction:column;gap:5px;">${
+      sorted.map((r,idx)=>`
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:9px;color:var(--muted);width:18px;text-align:right">${idx+1}</span>
+          <span style="font-size:10px;font-weight:${idx<3?'700':'400'};color:${idx<3?'var(--txt)':'var(--muted)'};width:200px;">${r.strat.title}</span>
+          <div style="flex:1;height:6px;background:var(--b1);border-radius:3px;overflow:hidden;">
+            <div style="height:100%;width:${r.score}%;background:${idx===0?'#d4a017':idx===1?'var(--acc2)':idx===2?'var(--acc4)':'var(--b2)'};border-radius:3px;transition:width .5s ${idx*30}ms;"></div>
+          </div>
+          <span style="font-size:10px;font-weight:700;color:${idx===0?'#d4a017':idx<3?'var(--acc4)':'var(--muted)'};width:36px;text-align:right">${r.score}%</span>
+        </div>`
+      ).join('')
+    }</div>`;
 
-## STRATEGY SCORES (rank ALL 14)
-Score each strategy 0-100 based on how well the current chart conditions match that strategy's requirements. List from highest to lowest. Format each as:
-"S[num] [name]: [score]% — [one sentence why]"
+  // Calculate levels for top strategy
+  const topStrat = top3[0].strat;
+  const mktData = {
+    prevClose: st.d.close, todayOpen: st.m.open,
+    prevHigh: st.d.high, prevLow: st.d.low,
+    cmp: st.cmp, ema21: st.d.ema21, ema50: st.d.ema50,
+    swingHigh: st.h.swH, swingLow: st.h.swL,
+    squeezeHigh: st.h.swH||st.d.high, squeezeLow: st.h.swL||st.d.low,
+    sqH: st.h.swH||st.d.high, sqL: st.h.swL||st.d.low,
+    mdir: (st.bullish?'Above Zero — Long':'Below Zero — Short'),
+    weekTrend: (st.aboveWeeklyEma?'Bullish — Above weekly 21 EMA':'Bearish — Below weekly 21 EMA'),
+    pcr: st.h.pcr, maxPain: st.cmp,
+    breakout: st.d.high, baseH: st.d.high, baseL: st.d.low,
+    weeklyEMA: st.h.wema||st.d.ema50, dailyRSI: st.d.rsi,
+    swH: st.h.swH||st.d.high, swL: st.h.swL||st.d.low,
+    atr: st.m.atr||Math.abs(st.d.high-st.d.low)*0.4,
+    wqH: st.d.high, wqL: st.d.low,
+    ema21: st.d.ema21, upperBand: st.d.ema21*(1+0.02), lowerBand: st.d.ema21*(1-0.02),
+    keyBarHigh: st.d.high, keyBarLow: st.d.low, runStart: st.h.swL||st.d.low,
+    seaTgt: st.cmp*1.04, swingHigh: st.h.swH||st.d.high, swingLow: st.h.swL||st.d.low,
+    momentumDir: (st.bullish?'Above Zero — Long':'Below Zero — Short'),
+  };
 
-## TOP 3 STRATEGY RECOMMENDATIONS
-For the top 3 strategies, provide full detail:
-
-STRATEGY: [name]
-MATCH SCORE: [X]%
-TYPE: [intraday/swing/positional]
-WHY THIS FITS: [2-3 sentences — specific chart evidence]
-CAUTION: [any risk or missing condition]
-
-## BEST STRATEGY: [name of your #1 pick]
-
-## SPECIFIC TRADE LEVELS (for your #1 strategy)
-ENTRY: [exact price]
-STOP LOSS: [exact price and logic]
-TARGET 1: [exact price and logic]
-TARGET 2: [exact price and logic]
-
-## KEY S/R LEVELS FROM CHARTS
-List 4-6 significant support and resistance prices you can see.
-
-## SETUP STATUS
-Is the #1 strategy setup VALID NOW, WAIT FOR TRIGGER, or AVOID? Explain what to watch for.
-
-Be specific with prices. Use ₹. If any chart is unclear or low-resolution, note it but still analyse what you can.`;
-
-    const content = uploaded.map(([tf,img])=>({type:'image', source:{type:'base64',media_type:img.mime,data:img.data.split(',')[1]}}));
-    content.push({type:'text', text:`${tfDesc}\n\nAnalyse all ${uploaded.length} chart(s) above and provide the complete multi-timeframe strategy recommendation for ${instr}.`});
-
-    // Check total payload size (rough estimate — base64 is ~1.33x raw)
-    const totalB64 = uploaded.reduce((s,[,img])=>s+img.data.length,0);
-    const estimatedMB = (totalB64 * 0.75 / 1024 / 1024).toFixed(1);
-    console.log(`Sending ${uploaded.length} images, ~${estimatedMB}MB total`);
-    if(totalB64 * 0.75 > 18 * 1024 * 1024){
-      throw new Error(`Images too large (~${estimatedMB}MB). Please compress your screenshots to under 2MB each before uploading.`);
-    }
-
-    const resp = await fetch(WORKER_URL,{
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-5', max_tokens:2400, system:sys, messages:[{role:'user',content}]})
-    });
-    if(!resp.ok){const errText=await resp.text();throw new Error(`HTTP ${resp.status}: ${errText.substring(0,300)}`);}
-    const data = await resp.json();
-    clearInterval(iv);
-    document.getElementById('an-thinking').style.display = 'none';
-
-    // Surface API errors clearly
-    if(data.error) throw new Error(`API Error (${data.error.type}): ${data.error.message}`);
-    if(!data.content?.[0]) throw new Error(`Unexpected response: ${JSON.stringify(data).substring(0,200)}`);
-    const txt = data.content[0].text;
-    AN.result = txt;
-
-    // Parse top 3 recs
-    const recMatches = [...txt.matchAll(/STRATEGY:\s*(.+)\nMATCH SCORE:\s*(\d+)%\nTYPE:\s*(.+)\nWHY THIS FITS:\s*([\s\S]+?)(?:\nCAUTION:|(?=\nSTRATEGY:|\n##))/gi)];
-    const recs = recMatches.slice(0,3).map((m,i)=>({
-      name: m[1].trim(), score: parseInt(m[2]), type: m[3].trim(),
-      why: m[4].trim().substring(0,220), rank: i,
-      stratObj: STRATS.find(s=>s.title.toLowerCase().includes(m[1].trim().toLowerCase().substring(0,8)) || m[1].trim().toLowerCase().includes(s.title.toLowerCase().substring(0,8)))
-    }));
-
-    const bestM = txt.match(/## BEST STRATEGY:\s*(.+)/i);
-    const bestName = bestM ? bestM[1].trim() : (recs[0]?.name||'');
-    AN.topStratId = recs[0]?.stratObj?.id ?? null;
-
-    // Render recommendation cards
-    const rankClasses = ['r1','r2','r3'];
-    const rankLabels = ['🥇 BEST MATCH','🥈 STRONG FIT','🥉 ALSO VALID'];
-    document.getElementById('an-instr-label').textContent = instr + ' · ' + uploadedList;
-    document.getElementById('an-rec-subtitle').textContent = `AI analysed ${uploaded.length} chart(s). Top strategy: ${bestName}`;
-    document.getElementById('an-rec-cards').innerHTML = recs.length > 0
-      ? recs.map((r,i)=>`
-          <div class="rec-card ${rankClasses[i]}">
-            <div class="rec-rank">${rankLabels[i]}</div>
-            <div class="rec-name">${r.stratObj?.title||r.name}</div>
-            <div class="rec-tags">${(r.stratObj?.tags||[r.type]).map(t=>`<span class="tag tag-${t}">${t}</span>`).join('')}</div>
-            <div class="rec-score-txt">${r.score}% match</div>
-            <div class="rec-bar-wrap"><div class="rec-bar" style="width:${r.score}%"></div></div>
-            <div class="rec-why">${r.why}</div>
-            <button class="rec-use-btn" onclick="anUseStrat(${r.stratObj?.id??-1},'${(r.stratObj?.title||r.name).replace(/'/g,"\\'")}')">Use This → Enter Trade</button>
-          </div>`).join('')
-      : '<div style="font-size:11px;color:var(--muted);padding:12px">Could not parse strategy recommendations. See full analysis below.</div>';
-
-    // Extract levels
-    const lvPats = [
-      {key:'entry',re:/ENTRY:\s*[₹]?\s*([0-9,]+\.?[0-9]*)/i},
-      {key:'sl',   re:/STOP LOSS:\s*[₹]?\s*([0-9,]+\.?[0-9]*)/i},
-      {key:'t1',  re:/TARGET 1:\s*[₹]?\s*([0-9,]+\.?[0-9]*)/i},
-      {key:'t2',  re:/TARGET 2:\s*[₹]?\s*([0-9,]+\.?[0-9]*)/i},
-    ];
-    const lvs={};
-    lvPats.forEach(p=>{const m=txt.match(p.re);if(m)lvs[p.key]=m[1].replace(/,/g,'');});
-    const srM = [...txt.matchAll(/(?:support|resistance|S\/R|level)[^\d\n]*[₹]?\s*([0-9,]{4,}\.?[0-9]*)/gi)];
-    const srs = [...new Set(srM.map(m=>m[1].replace(/,/g,'')))].slice(0,5);
-
-    const lvCards = [
-      lvs.entry?`<div class="lc"><div class="lcl">AI ENTRY</div><div class="lcv en">${lvs.entry}</div><div class="lcs">${bestName}</div></div>`:'',
-      lvs.sl?`<div class="lc"><div class="lcl">AI STOP</div><div class="lcv sl">${lvs.sl}</div></div>`:'',
-      lvs.t1?`<div class="lc"><div class="lcl">AI TARGET 1</div><div class="lcv tg">${lvs.t1}</div></div>`:'',
-      lvs.t2?`<div class="lc"><div class="lcl">AI TARGET 2</div><div class="lcv tg">${lvs.t2}</div></div>`:'',
-      ...srs.map((v,i)=>`<div class="lc"><div class="lcl">S/R ${i+1}</div><div class="lcv sr">${v}</div></div>`),
-    ].filter(Boolean).join('');
-    document.getElementById('an-levels').innerHTML = lvCards || '<div style="font-size:11px;color:var(--muted)">Specific price levels not extracted — see full analysis.</div>';
-
-    // Full text
-    document.getElementById('an-full-text').textContent = txt;
-
-    // Update trade button
-    if(AN.topStratId !== null){
-      document.getElementById('an-trade-btn').textContent = `Use "${STRATS[AN.topStratId].title}" → Enter Trade`;
-    }
-
-    document.getElementById('an-results').style.display = 'block';
-    document.getElementById('an-results').scrollIntoView({behavior:'smooth', block:'start'});
-
-  } catch(err){
-    clearInterval(iv);
-    document.getElementById('an-thinking').style.display = 'none';
-    // Show error banner prominently
-    const isFetchFail = err.message.includes('fetch') || err.message.includes('network') || err.message.includes('NetworkError') || err.message.includes('Failed');
-    let errDiv = document.getElementById('an-error-banner');
-    if(!errDiv){
-      errDiv = document.createElement('div');
-      errDiv.id = 'an-error-banner';
-      document.getElementById('an-results').parentNode.insertBefore(errDiv, document.getElementById('an-results'));
-    }
-    errDiv.style.cssText = 'background:#fff5f5;border:2px solid #f5a0a0;border-radius:8px;padding:16px;margin-bottom:14px;';
-    const fetchFixHtml = isFetchFail ? `
-      <div style="background:#fffbf0;border:1px solid #e8d58a;border-radius:6px;padding:12px;margin-top:10px;">
-        <div style="font-family:var(--fh);font-size:11px;font-weight:700;color:#8a6600;margin-bottom:6px;">🔑 Most likely fix: Open in Chrome browser</div>
-        <div style="font-size:10px;color:#6b5500;line-height:1.7;">
-          <strong>Your charts are fine.</strong> The "Failed to fetch" error means the browser is blocking the API call.<br><br>
-          <strong>Step-by-step fix:</strong><br>
-          1. Download this HTML file to your phone's storage<br>
-          2. Open <strong>Chrome</strong> (not WhatsApp, not Samsung browser)<br>
-          3. In Chrome address bar type: <code style="background:#f0e8c0;padding:1px 4px;border-radius:2px;">file:///</code> and browse to the file<br>
-          4. Upload your charts again — it will work
-        </div>
-      </div>` : '';
-    errDiv.innerHTML = `
-      <div style="font-family:var(--fh);font-size:13px;font-weight:700;color:#b01c12;margin-bottom:6px;">⚠ Analysis Failed</div>
-      <div style="font-size:11px;color:#6b2c2c;line-height:1.6;font-family:monospace;background:#fff0f0;padding:8px;border-radius:4px;">${err.message}</div>
-      ${fetchFixHtml}
-      <div style="font-size:10px;color:var(--muted);margin-top:10px;line-height:1.5;">
-        <strong>Your chart screenshots are perfectly fine</strong> — JPEG from Kite/Zerodha works great.<br>
-        The issue is always the browser, not the images.
+  let lvHtml = '';
+  try {
+    const lv = topStrat.calc(mktData);
+    AN.calcLevels = lv;
+    const e=parseFloat(lv.entry)||0, sl=parseFloat(lv.sl)||0, t1=parseFloat(lv.t1)||0, t2=parseFloat(lv.t2)||0;
+    lvHtml = `
+      <div class="lg">
+        <div class="lc"><div class="lcl">STRATEGY</div><div class="lcv en" style="font-size:11px;">${topStrat.title}</div></div>
+        <div class="lc"><div class="lcl">DIRECTION</div><div class="lcv en">${lv.dir||'—'}</div><div class="lcs">${topStrat.entryTF}</div></div>
+        <div class="lc"><div class="lcl">ENTRY</div><div class="lcv en">${e?e.toFixed(0):'—'}</div></div>
+        <div class="lc"><div class="lcl">STOP LOSS</div><div class="lcv sl">${sl?sl.toFixed(0):'—'}</div><div class="lcs">Risk: ${sl&&e?Math.abs(e-sl).toFixed(0):'-'} pts</div></div>
+        <div class="lc"><div class="lcl">TARGET 1</div><div class="lcv tg">${t1?t1.toFixed(0):'—'}</div></div>
+        <div class="lc"><div class="lcl">TARGET 2</div><div class="lcv tg">${t2?t2.toFixed(0):'—'}</div></div>
       </div>
-      <button class="btn bd" style="margin-top:10px;font-size:10px" onclick="document.getElementById('an-error-banner').style.display='none'">Dismiss</button>`;
+      ${lv.note?`<div style="margin-top:10px;font-size:10px;color:var(--muted);background:var(--s2);padding:10px;border-radius:5px;line-height:1.7;white-space:pre-wrap;">${lv.note}</div>`:''}`;
+  } catch(e) {
+    lvHtml = `<div style="font-size:11px;color:var(--muted)">Enter more price data to calculate exact levels.</div>`;
   }
+  document.getElementById('an-levels').innerHTML = lvHtml;
+
+  document.getElementById('an-trade-btn').textContent = `Use "${topStrat.title}" → Enter Trade`;
+  document.getElementById('an-results').style.display = 'block';
+  document.getElementById('an-results').scrollIntoView({behavior:'smooth',block:'start'});
 }
+
+// Stub out old AI image functions (not needed in rule engine)
+function anTfLoad(){}
+function anTfDrop(){}
+function anRenderZone(){}
+function runAnalyser(){ runRuleEngine(); }
 
 function anUseStrat(id, name){
-  if(id >= 0 && id < STRATS.length){
-    AN.topStratId = id;
+  if(id>=0&&id<STRATS.length){
+    AN.topStratId=id;
     pickS(id);
-    // Pre-fill instrument from analyser
-    const instrVal = document.getElementById('an-instr').value;
-    if(instrVal && instrVal !== 'other'){
-      document.getElementById('w-instr').value = instrVal;
-      S.instr = instrVal;
-    }
-    pg('enter');
-    wGoStep(0);
-    setTimeout(()=>{
-      const el = document.getElementById('so'+id);
-      if(el) el.scrollIntoView({behavior:'smooth',block:'center'});
-    }, 100);
-  } else {
-    pg('enter');
-  }
+    const instrVal=document.getElementById('an-instr').value;
+    if(instrVal&&instrVal!=='other'){ document.getElementById('w-instr').value=instrVal; S.instr=instrVal; }
+    pg('enter'); wGoStep(0);
+    setTimeout(()=>{const el=document.getElementById('so'+id);if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},100);
+  } else { pg('enter'); }
 }
-
 function goToTradeWithRec(){
-  if(AN.topStratId !== null) anUseStrat(AN.topStratId, STRATS[AN.topStratId].title);
+  if(AN.topStratId!==null) anUseStrat(AN.topStratId, STRATS[AN.topStratId]?.title||'');
   else pg('enter');
 }
-
 function resetAnalyser(){
-  AN.imgs = {daily:null, hourly:null, '5min':null};
-  AN.result = null; AN.topStratId = null;
-  ['daily','hourly','5min'].forEach(tf=>anResetZone(tf));
-  document.getElementById('an-results').style.display = 'none';
-  document.getElementById('an-thinking').style.display = 'none';
-  document.getElementById('an-ctx').value = '';
-  window.scrollTo({top:0, behavior:'smooth'});
+  document.getElementById('an-results').style.display='none';
+  // Reset all inputs
+  document.querySelectorAll('#pg-analyser input,#pg-analyser select').forEach(el=>{ if(el.tagName==='SELECT') el.value=''; else el.value=''; });
+  anTab('daily');
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 
 // ── STEP 4: Result ──

@@ -344,18 +344,14 @@ textarea.fi{min-height:65px;resize:vertical;}
     </div>
   </div>
 
-  <!-- Browser compatibility notice -->
+  <!-- Setup notice -->
   <div id="browser-warn" style="background:#eef6ff;border:1px solid #b8d8f8;border-radius:8px;padding:13px 16px;margin-bottom:16px;display:flex;align-items:flex-start;gap:12px;">
-    <div style="font-size:20px;flex-shrink:0;margin-top:1px;">💡</div>
+    <div style="font-size:20px;flex-shrink:0;margin-top:1px;">⚙️</div>
     <div style="flex:1;">
-      <div style="font-family:var(--fh);font-size:11px;font-weight:700;color:#1a4a8a;margin-bottom:4px;">Must open in Chrome — not WhatsApp / in-app browser</div>
+      <div style="font-family:var(--fh);font-size:11px;font-weight:700;color:#1a4a8a;margin-bottom:4px;">One-time setup required — Cloudflare Worker proxy</div>
       <div style="font-size:10px;color:#2d5a9a;line-height:1.7;">
-        The AI feature calls an external API which <strong>only works in Chrome</strong> (Android or desktop). It will fail inside WhatsApp, Telegram, Instagram, or any in-app browser — that's what "Failed to fetch" means.<br><br>
-        <strong>How to fix right now:</strong><br>
-        1. Download this HTML file to your phone storage (long-press → Save / Download)<br>
-        2. Open <strong>Google Chrome</strong> on your phone<br>
-        3. In the address bar, type <code style="background:#d8eaff;padding:2px 5px;border-radius:3px;">file:///sdcard/Download/</code> and find the file<br>
-        4. Your Kite JPEG screenshots work perfectly — just re-upload them
+        To use AI analysis, you need to deploy a free Cloudflare Worker and paste its URL in the HTML file (line 2 of the &lt;script&gt; tag — replace <code style="background:#d8eaff;padding:2px 5px;border-radius:3px;font-size:9px;">https://YOUR-WORKER.workers.dev</code>).<br>
+        See the <strong>worker.js</strong> file included with this download for full setup instructions.
       </div>
     </div>
     <button onclick="document.getElementById('browser-warn').style.display='none'" style="background:none;border:none;color:#6b8ab0;cursor:pointer;font-size:18px;flex-shrink:0;padding:0 4px;">×</button>
@@ -655,6 +651,11 @@ textarea.fi{min-height:65px;resize:vertical;}
 </div><!-- lay -->
 
 <script>
+// ─────────────────────────────────────────────────────────────────────────────
+// WORKER URL — paste your Cloudflare Worker URL here after deploying
+// Example: 'https://tradeflow-proxy.YOUR-NAME.workers.dev'
+const WORKER_URL = 'https://tradeflow-proxy.junaidv328.workers.dev/';
+// ─────────────────────────────────────────────────────────────────────────────
 // ═══════════════════════════════ STRATEGY DATA ═══════════════════════════════
 const STRATS=[
 {id:0,num:'01',title:'Opening Gap Fade',type:'intraday',tags:['intraday','reversal'],wr:'82%',book:'Carter Ch.7',
@@ -1352,10 +1353,11 @@ Be specific with prices. Use ₹ symbol. If a chart is unclear, say so but still
     const tfDesc = uploadedTFs.map(([tf,img],i)=>`Image ${i+1}: ${tfLabels[tf]} chart of ${instr}`).join('\n');
     content.push({type:'text',text:`${tfDesc}\n\nPlease analyse all ${uploadedTFs.length} chart(s) above and provide the full multi-timeframe analysis and strategy recommendation.`});
 
-    const resp = await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST', headers:{'Content-Type':'application/json','anthropic-dangerous-direct-browser-access':'true','anthropic-version':'2023-06-01'},
+    const resp = await fetch(WORKER_URL,{
+      method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({model:'claude-sonnet-4-5',max_tokens:2200,system:sys,messages:[{role:'user',content}]})
     });
+    if(!resp.ok){const t=await resp.text();throw new Error(`HTTP ${resp.status}: ${t.substring(0,200)}`);}
     const data = await resp.json();
     clearInterval(iv);
     document.getElementById('ath').style.display = 'none';
@@ -1589,14 +1591,11 @@ Be specific with prices. Use ₹. If any chart is unclear or low-resolution, not
       throw new Error(`Images too large (~${estimatedMB}MB). Please compress your screenshots to under 2MB each before uploading.`);
     }
 
-    const resp = await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST', headers:{'Content-Type':'application/json','anthropic-dangerous-direct-browser-access':'true','anthropic-version':'2023-06-01'},
+    const resp = await fetch(WORKER_URL,{
+      method:'POST', headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-5', max_tokens:2400, system:sys, messages:[{role:'user',content}]})
     });
-    if(!resp.ok){
-      const errText = await resp.text();
-      throw new Error(`HTTP ${resp.status}: ${errText.substring(0,300)}`);
-    }
+    if(!resp.ok){const errText=await resp.text();throw new Error(`HTTP ${resp.status}: ${errText.substring(0,300)}`);}
     const data = await resp.json();
     clearInterval(iv);
     document.getElementById('an-thinking').style.display = 'none';
